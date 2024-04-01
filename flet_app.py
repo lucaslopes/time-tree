@@ -9,6 +9,7 @@ class TimeTree:
         self.running = False
         self.start_time = None
         self.end_time = None
+        self.description = None  # Initialize description attribute
         self.page = page
         self.configure_page()
         self.main_page()
@@ -20,29 +21,42 @@ class TimeTree:
         self.page.window_resizable = False
         self.page.window_always_on_top = True
         self.page.title = "Time Tree"
-  
+
     def toggle_timer(self, event):
         if self.running:
-            # Stop the timer and calculate the duration
+            # Stop the timer, save data, and hide the text input
             self.running = False
             self.end_time = datetime.now()
             duration = self.end_time - self.start_time
-            db.insert({'start_time': self.start_time.isoformat(), 'end_time': self.end_time.isoformat(), 'duration': duration.total_seconds()})
-            self.page.add(ft.Text(f"End Time: {self.end_time}"))
-            self.page.controls[0].icon = "play_arrow"
-            self.page.controls[0].tooltip = "Start Timer"
+            self.description = self.description_input.value
+            db.insert({
+                'start_time': self.start_time.isoformat(), 
+                'end_time': self.end_time.isoformat(), 
+                'duration': duration.total_seconds(), 
+                'description': self.description
+            })
+            # self.page.add(ft.Text(f"End Time: {self.end_time}"))
+            self.description_input.value = ""  # Clear the input
+            self.description_input.visible = False  # Hide the input field
+            self.main_button.icon = "play_arrow"
+            self.main_button.tooltip = "Start Timer"
+            self.page.update()
         else:
-            # Start the timer
+            # Start the timer and show the text input
             self.running = True
             self.start_time = datetime.now()
             self.end_time = None
-            self.page.add(ft.Text(f"Start Time: {self.start_time}"))
-            self.page.controls[0].icon = "stop"
-            self.page.controls[0].tooltip = "Stop Timer"
+            self.description_input.visible = True  # Show the text input field
+            # self.page.add(ft.Text(f"Start Time: {self.start_time}"))
+            self.main_button.icon = "stop"
+            self.main_button.tooltip = "Stop Timer"
         self.page.update()
   
     def main_page(self):
-        button = ft.FloatingActionButton(icon="play_arrow", tooltip="Start Timer", on_click=self.toggle_timer)
-        self.page.add(button)  # Add the button to the page
+        self.description_input = ft.TextField(hint_text="Enter task description", visible=False)
+        self.main_button = ft.FloatingActionButton(icon="play_arrow", tooltip="Start Timer", on_click=self.toggle_timer)
+        self.page.add(self.main_button)  # Add the button to the page
+        self.page.add(self.description_input)
+        pass
 
 ft.app(target=TimeTree)
