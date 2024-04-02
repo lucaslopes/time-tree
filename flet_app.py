@@ -35,15 +35,15 @@ class TimeTree:
             list_tile = ft.ListTile(
                 title=ft.Text(value=f"{entry['description']}"),
                 subtitle=ft.Text(value=f"{entry['start_time']} - {entry['end_time']} - {entry['duration']}s"),
-                leading=ft.IconButton(icon=ft.icons.TIMER, on_click=lambda e, entry=entry: self.update_current_task(e, entry.doc_id))
+                leading=ft.IconButton(icon=ft.icons.TIMER, on_click=lambda e, entry=entry: self.update_current_task(e, entry))
             )
             self.entries_list.controls.append(list_tile)
         self.entries_list.update()
         self.page.update()
 
-    def update_current_task(self, event, id):
-        self.current_task = id
-        self.top_bar_title.value = id
+    def update_current_task(self, event, entry):
+        self.current_task = entry['doc_id'] if 'doc_id' in entry else entry.doc_id
+        self.top_bar_title.value = entry['description'] if len(entry['description']) > 0 else f'#{entry.doc_id}'
         self.update_entries_list()
         self.page.update()
 
@@ -51,9 +51,9 @@ class TimeTree:
         if self.current_task != 0:  # Check if it's not the root
             current_entry = db.get(doc_id = self.current_task)
             parent_id = current_entry['parent_id']
-            parent_id = db.get(doc_id = parent_id).doc_id if parent_id != 0 else parent_id
-            if type(parent_id) is int:
-                self.update_current_task(None, parent_id)
+            parent_entry = db.get(doc_id = parent_id) if parent_id != 0 else {'doc_id': 0, 'description': 'Root'}
+            if parent_entry:
+                self.update_current_task(None, parent_entry)
 
     def stopper(self):
         self.running = False
