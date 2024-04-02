@@ -25,6 +25,7 @@ class TimeTree:
         self.description = None
         self.current_task = 0
         self.top_bar_title = ft.Text(value="")
+        self.path = ft.Text(value=self.get_path(), width=self.page.window_width * .95, height=self.page.window_height * .05, no_wrap=True, text_align=ft.alignment.center)
 
     def configure_page(self):
         self.page.bgcolor = ft.colors.BROWN_600
@@ -55,6 +56,7 @@ class TimeTree:
         entry = entry if entry else self.root_task()
         self.current_task = entry['doc_id'] if 'doc_id' in entry else entry.doc_id
         self.top_bar_title.value = self.format_duration()
+        self.path.value = self.get_path(entry)
         self.update_entries_list()
         self.page.update()
 
@@ -75,6 +77,22 @@ class TimeTree:
             parent_id = current_entry['parent_id']
             parent_entry = self.db.get(doc_id = parent_id) if parent_id != 0 else None
             self.update_current_task(parent_entry)
+
+    def get_identifier(self, entry):
+        return entry['description'] if len(entry['description']) > 0 else f'#{entry.doc_id}'
+
+    def get_path(self, entry = None):
+        if self.current_task == 0:
+            return 'root'
+        # Build the path from the current task to the root
+        path = [self.get_identifier(entry)]
+        parent_id = entry['parent_id'] if 'parent_id' in entry else 0
+        while parent_id != 0:
+            parent_entry = self.db.get(doc_id=parent_id)
+            path.insert(0, self.get_identifier(parent_entry))
+            parent_id = parent_entry.get('parent_id', 0)
+        path.insert(0, 'root')
+        return " > ".join(path)
 
     def get_local_time(self):
         return datetime.now(timezone.utc).astimezone(tzlocal.get_localzone())
@@ -98,6 +116,10 @@ class TimeTree:
         self.description_input.content.value = ""
         self.description_input.visible = False
         self.entries_list.visible = True
+        self.top_bar.content.controls[0].visible = True
+        self.top_bar.content.controls[1].visible = True
+        self.top_bar.content.controls[-1].visible = True
+        self.top_bar.content.controls[-2].visible = True
         self.main_button.icon = "play_arrow"
         self.main_button.tooltip = "Start Timer"
         self.main_button.bgcolor = ft.colors.GREEN_700
@@ -112,6 +134,10 @@ class TimeTree:
         self.end_time = None
         self.description_input.visible = True
         self.entries_list.visible = False
+        self.top_bar.content.controls[0].visible = False
+        self.top_bar.content.controls[1].visible = False
+        self.top_bar.content.controls[-1].visible = False
+        self.top_bar.content.controls[-2].visible = False
         self.main_button.icon = "stop"
         self.main_button.tooltip = "Stop Timer"
         self.main_button.bgcolor = ft.colors.BROWN_700
@@ -133,7 +159,6 @@ class TimeTree:
           bgcolor=ft.colors.BROWN_800,
           width=self.page.window_width,
           height=self.page.window_height * .1)
-        # TODO: display the path from the root to the current task
         self.description_input = ft.Container(
             ft.TextField(hint_text="Enter task description", expand=True, width=self.page.window_width * .95, height=self.page.window_height * .1),
             alignment=ft.alignment.center,
@@ -148,8 +173,9 @@ class TimeTree:
             padding=0,
           )
         self.main_button = ft.FloatingActionButton(icon="play_arrow", tooltip="Start Timer", on_click=self.toggle_timer, bgcolor=ft.colors.GREEN_700)
-        self.page.add(self.top_bar)
         self.page.add(self.main_button)
+        self.page.add(self.top_bar)
+        self.page.add(self.path)
         self.page.add(self.description_input)
         self.page.add(self.entries_list)
         self.update_entries_list()
