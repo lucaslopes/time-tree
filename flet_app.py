@@ -1,5 +1,6 @@
+import tzlocal
 import flet as ft
-from datetime import datetime
+from datetime import datetime, timezone
 from tinydb import TinyDB, Query
 
 db = TinyDB('time_tree.json')  # Initialize the database
@@ -55,14 +56,17 @@ class TimeTree:
             if parent_entry:
                 self.update_current_task(None, parent_entry)
 
+    def get_local_time(self):
+        return datetime.now(timezone.utc).astimezone(tzlocal.get_localzone())
+    
     def stopper(self):
         self.running = False
-        self.end_time = datetime.now()
+        self.end_time = self.get_local_time()
         duration = self.end_time - self.start_time
         self.description = self.description_input.value
         db.insert({
-            'start_time': self.start_time.isoformat(), 
-            'end_time': self.end_time.isoformat(), 
+            'start_time': self.start_time.isoformat(timespec='seconds'), 
+            'end_time': self.end_time.isoformat(timespec='seconds'), 
             'duration': duration.total_seconds(), 
             'description': self.description,
             'parent_id': self.current_task
@@ -78,7 +82,7 @@ class TimeTree:
     
     def starter(self):
         self.running = True
-        self.start_time = datetime.now()
+        self.start_time = self.get_local_time()
         self.end_time = None
         self.description_input.visible = True
         self.entries_list.visible = False
