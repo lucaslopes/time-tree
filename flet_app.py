@@ -6,15 +6,19 @@ db = TinyDB('time_tree.json')  # Initialize the database
 
 class TimeTree:
     def __init__(self, page: ft.Page) -> None:
+        self.page = page
+        self.main_attributes()
+        self.configure_page()
+        self.main_page()
+        self.update_entries_list()
+    
+    def main_attributes(self):
         self.running = False
         self.start_time = None
         self.end_time = None
         self.description = None
-        self.page = page
-        self.top_bar_title = ft.Text(value="Select an entry")  # Initialize top bar title
-        self.configure_page()
-        self.main_page()
-        self.update_entries_list()
+        self.current_task = 0
+        self.top_bar_title = ft.Text(value="Root")  # Initialize top bar title
 
     def configure_page(self):
         self.page.bgcolor = ft.colors.BROWN
@@ -26,21 +30,30 @@ class TimeTree:
 
     def update_entries_list(self):
         self.entries_list.controls.clear()
-        for entry in db.all():
-            # Using ListTile for a more interactive list view
+        entries = db.search(Query().parent_id == self.current_task)
+        for entry in entries:
             list_tile = ft.ListTile(
                 title=ft.Text(value=f"{entry['description']}"),
                 subtitle=ft.Text(value=f"{entry['start_time']} - {entry['end_time']} - {entry['duration']}s"),
-                leading=ft.IconButton(icon=ft.icons.TIMER, on_click=lambda e, entry=entry: self.update_top_bar(e, entry))
+                leading=ft.IconButton(icon=ft.icons.TIMER, on_click=lambda e, entry=entry: self.update_current_task(e, entry.doc_id))
             )
             self.entries_list.controls.append(list_tile)
         self.entries_list.update()
         self.page.update()
 
-    def update_top_bar(self, event, entry):
-        # Update the top bar title with the duration of the clicked item
-        self.top_bar_title.value = f"Duration: {entry['duration']}s"
+    def update_current_task(self, event, id):
+        self.current_task = id
+        self.top_bar_title.value = id
+        self.update_entries_list()
         self.page.update()
+
+    def go_back(self, _):
+        if self.current_task != 0:  # Check if it's not the root
+            current_entry = db.get(doc_id = self.current_task)
+            parent_id = current_entry['parent_id']
+            parent_id = db.get(doc_id = parent_id).doc_id if parent_id != 0 else parent_id
+            if type(parent_id) is int:
+                self.update_current_task(None, parent_id)
 
     def stopper(self):
         self.running = False
@@ -51,7 +64,8 @@ class TimeTree:
             'start_time': self.start_time.isoformat(), 
             'end_time': self.end_time.isoformat(), 
             'duration': duration.total_seconds(), 
-            'description': self.description
+            'description': self.description,
+            'parent_id': self.current_task
         })
         self.description_input.value = ""  # Clear the input
         self.description_input.visible = False  # Hide the input field
@@ -73,18 +87,16 @@ class TimeTree:
         self.main_button.bgcolor = ft.colors.BROWN
         self.page.bgcolor = ft.colors.GREEN
     
-    def toggle_timer(self, event):
-        if self.running:
-            self.stopper()
-        else:
-            self.starter()
+    def toggle_timer(self, _):
+        self.stopper() if self.running else self.starter()
         self.page.update()
     
     def main_page(self):
-        self.top_bar = ft.Row(controls=[self.top_bar_title])  # Top bar with title
+        back_button = ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=self.go_back)
+        self.top_bar = ft.Row(controls=[back_button, self.top_bar_title])  # Add back button to top bar
         self.description_input = ft.TextField(hint_text="Enter task description", visible=False)
         self.main_button = ft.FloatingActionButton(icon="play_arrow", tooltip="Start Timer", on_click=self.toggle_timer, bgcolor=ft.colors.GREEN)
-        self.entries_list = ft.ListView(height=self.page.window_height * .8)  # Adjust height for top bar
+        self.entries_list = ft.ListView(height=self.page.window_height * .8)
         self.page.add(self.top_bar)
         self.page.add(self.main_button)
         self.page.add(self.description_input)
