@@ -24,7 +24,8 @@ class TimeTree:
         self.end_time = None
         self.description = None
         self.current_task = 0
-        self.top_bar_title = ft.Text(value="")
+        # self.top_bar = ft.TextButton(value="", width=self.page.window_width * .95, height=self.page.window_height * .1, no_wrap=True, text_align=ft.alignment.top_center)
+        self.top_bar_title = ft.TextButton(text="", style=ft.ButtonStyle(color='white', overlay_color=ft.colors.BROWN_800))
         self.path = ft.Row(scroll="auto", width=self.page.window_width * .95, height=self.page.window_height * .05, controls=self.get_path_buttons())
 
     def configure_page(self):
@@ -44,7 +45,7 @@ class TimeTree:
             list_tile = ft.Container(
                 ft.ListTile(
                   title=ft.Text(value=f"{entry['description']}"),
-                  subtitle=ft.Text(value=f"Start: {s_time}\nEnd: {e_time}\nTime elapsed: {entry['duration']}s"),
+                  subtitle=ft.Text(value=f"{entry['duration']}s", text_align=ft.alignment.center_right), # Start: {s_time}\nEnd: {e_time}\nTime elapsed: 
                   leading=ft.IconButton(icon=ft.icons.TASK, on_click=lambda e, entry=entry: self.update_current_task(entry, e))),
                 border = ft.border.all(1, ft.colors.WHITE),
                 border_radius = self.page.window_width * .025)
@@ -55,7 +56,8 @@ class TimeTree:
     def update_current_task(self, entry = None, event = None):
         entry = entry if entry else self.root_task()
         self.current_task = entry['doc_id'] if 'doc_id' in entry else entry.doc_id
-        self.top_bar_title.value = self.format_duration()
+        self.top_bar_title.text = self.format_duration()
+        self.top_bar_title.style.overlay_color = ft.colors.BROWN_800 if self.running else ft.colors.GREEN_800
         self.path.controls = self.get_path_buttons(entry)
         self.update_entries_list()
         self.page.update()
@@ -66,10 +68,10 @@ class TimeTree:
     def update_time(self):
         while self.running:
             self.end_time = self.get_local_time()
-            self.top_bar_title.value = self.format_duration()
+            self.top_bar_title.text = self.format_duration()
             self.page.update()
             time.sleep(1)
-        self.top_bar_title.value = self.format_duration()
+        self.top_bar_title.text = self.format_duration()
 
     def go_back(self, _):
         if self.current_task != 0:
@@ -102,7 +104,7 @@ class TimeTree:
 
     def get_path_buttons(self, entry = None):
         # self.path = ft.Text(value=self.get_path(), width=self.page.window_width * .95, height=self.page.window_height * .05, no_wrap=True, text_align=ft.alignment.top_center)
-        return [ft.TextButton(word, data=word, on_click=self.on_path_click) for word in self.get_path(entry).split(" > ")]
+        return [ft.TextButton(word, data=word, on_click=self.on_path_click, style=ft.ButtonStyle(color='white', overlay_color=ft.colors.BROWN_600 if self.running else ft.colors.GREEN_600)) for word in self.get_path(entry).split(" > ")]
 
     def get_local_time(self):
         return datetime.now(timezone.utc).astimezone(tzlocal.get_localzone())
@@ -126,10 +128,9 @@ class TimeTree:
         self.description_input.content.value = ""
         self.description_input.visible = False
         self.entries_list.visible = True
-        self.top_bar.content.controls[0].visible = True
-        self.top_bar.content.controls[1].visible = True
-        self.top_bar.content.controls[-1].visible = True
-        self.top_bar.content.controls[-2].visible = True
+        self.top_bar_title.style.overlay_color = ft.colors.GREEN_800
+        for i in range(len(self.top_bar.content.controls)):
+            self.top_bar.content.controls[i].style.overlay_color = ft.colors.GREEN_800
         self.main_button.icon = "play_arrow"
         self.main_button.tooltip = "Start Timer"
         self.main_button.bgcolor = ft.colors.GREEN_700
@@ -144,27 +145,30 @@ class TimeTree:
         self.end_time = None
         self.description_input.visible = True
         self.entries_list.visible = False
-        self.top_bar.content.controls[0].visible = False
-        self.top_bar.content.controls[1].visible = False
-        self.top_bar.content.controls[-1].visible = False
-        self.top_bar.content.controls[-2].visible = False
+        self.top_bar_title.style.overlay_color = ft.colors.BROWN_800
+        for i in range(len(self.top_bar.content.controls)):
+            self.top_bar.content.controls[i].style.overlay_color = ft.colors.BROWN_800
+        for i in range(len(self.path.controls)):
+            self.path.controls[i].style.overlay_color = ft.colors.BROWN_800
         self.main_button.icon = "stop"
         self.main_button.tooltip = "Stop Timer"
         self.main_button.bgcolor = ft.colors.BROWN_700
         self.top_bar.bgcolor = ft.colors.GREEN_800
         self.page.bgcolor = ft.colors.GREEN_600
         threading.Thread(target=self.update_time).start()
-    
+
     def toggle_timer(self, _):
         self.stopper() if self.running else self.starter()
         self.page.update()
     
     def main_page(self):
-        back_button = ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=self.go_back, icon_color=ft.colors.WHITE)
-        edit_button = ft.IconButton(icon=ft.icons.EDIT, on_click=lambda e: True, icon_color=ft.colors.WHITE)
-        settings_button = ft.IconButton(icon=ft.icons.SETTINGS, on_click=lambda e: True, icon_color=ft.colors.WHITE)
+        back_button = ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=self.go_back, icon_color=ft.colors.WHITE, style=ft.ButtonStyle(overlay_color=ft.colors.GREEN_800))
+        edit_button = ft.IconButton(icon=ft.icons.EDIT, on_click=lambda e: True, icon_color=ft.colors.WHITE, style=ft.ButtonStyle(overlay_color=ft.colors.GREEN_800))
+        # settings_button = ft.IconButton(icon=ft.icons.SETTINGS, on_click=lambda e: True, icon_color=ft.colors.WHITE)
         self.top_bar = ft.Container(
-          content=ft.Row(controls=[back_button, self.top_bar_title, edit_button, settings_button]),  # Add back button to top bar
+          content=ft.Row(
+              controls=[back_button, self.top_bar_title, edit_button],#, settings_button],
+              alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
           bgcolor=ft.colors.BROWN_800,
           width=self.page.window_width,
           height=self.page.window_height * .1)
