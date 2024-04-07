@@ -4,9 +4,10 @@ import threading
 import flet as ft
 from datetime import datetime, timezone
 from tinydb import TinyDB, Query
+from secret import DEFAULT_PATH
 
 class TimeTree:
-    def __init__(self, page: ft.Page, db_path: str = 'time_tree.json') -> None:
+    def __init__(self, page: ft.Page, db_path: str = DEFAULT_PATH) -> None:
         self.db = TinyDB(db_path)
         self.page = page
         self.main_attributes()
