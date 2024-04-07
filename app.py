@@ -16,7 +16,7 @@ class TimeTree:
         self.update_current_task(self.root_task())
     
     def root_task(self):
-        return {'doc_id': 0, 'description': 'Root'}
+        return {'doc_id': 0, 'description': '\U0001F3E0'}
 
     def main_attributes(self):
         self.running = False
@@ -25,7 +25,7 @@ class TimeTree:
         self.description = None
         self.current_task = 0
         self.top_bar_title = ft.Text(value="")
-        self.path = ft.Text(value=self.get_path(), width=self.page.window_width * .95, height=self.page.window_height * .05, no_wrap=True, text_align=ft.alignment.center)
+        self.path = ft.Row(scroll="auto", width=self.page.window_width * .95, height=self.page.window_height * .05, controls=self.get_path_buttons())
 
     def configure_page(self):
         self.page.bgcolor = ft.colors.BROWN_600
@@ -56,7 +56,7 @@ class TimeTree:
         entry = entry if entry else self.root_task()
         self.current_task = entry['doc_id'] if 'doc_id' in entry else entry.doc_id
         self.top_bar_title.value = self.format_duration()
-        self.path.value = self.get_path(entry)
+        self.path.controls = self.get_path_buttons(entry)
         self.update_entries_list()
         self.page.update()
 
@@ -78,12 +78,18 @@ class TimeTree:
             parent_entry = self.db.get(doc_id = parent_id) if parent_id != 0 else None
             self.update_current_task(parent_entry)
 
+    def on_path_click(self, event):
+        clicked_word = event.control.data
+        # TODO: instead of searching the db, seach on the self.path list. To do this, we need to store the entries in the path list and not only the names
+        entry = None if clicked_word == '\U0001F3E0' else self.db.search(Query().description == clicked_word)[0]
+        self.update_current_task(entry)
+
     def get_identifier(self, entry):
         return entry['description'] if len(entry['description']) > 0 else f'#{entry.doc_id}'
 
     def get_path(self, entry = None):
         if self.current_task == 0:
-            return 'root'
+            return '\U0001F3E0'
         # Build the path from the current task to the root
         path = [self.get_identifier(entry)]
         parent_id = entry['parent_id'] if 'parent_id' in entry else 0
@@ -91,8 +97,12 @@ class TimeTree:
             parent_entry = self.db.get(doc_id=parent_id)
             path.insert(0, self.get_identifier(parent_entry))
             parent_id = parent_entry.get('parent_id', 0)
-        path.insert(0, 'root')
+        path.insert(0, '\U0001F3E0')
         return " > ".join(path)
+
+    def get_path_buttons(self, entry = None):
+        # self.path = ft.Text(value=self.get_path(), width=self.page.window_width * .95, height=self.page.window_height * .05, no_wrap=True, text_align=ft.alignment.top_center)
+        return [ft.TextButton(word, data=word, on_click=self.on_path_click) for word in self.get_path(entry).split(" > ")]
 
     def get_local_time(self):
         return datetime.now(timezone.utc).astimezone(tzlocal.get_localzone())
@@ -150,12 +160,11 @@ class TimeTree:
         self.page.update()
     
     def main_page(self):
-        home_button = ft.IconButton(icon=ft.icons.HOME, on_click=lambda e: self.update_current_task(), icon_color=ft.colors.WHITE)
         back_button = ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=self.go_back, icon_color=ft.colors.WHITE)
         edit_button = ft.IconButton(icon=ft.icons.EDIT, on_click=lambda e: True, icon_color=ft.colors.WHITE)
         settings_button = ft.IconButton(icon=ft.icons.SETTINGS, on_click=lambda e: True, icon_color=ft.colors.WHITE)
         self.top_bar = ft.Container(
-          content=ft.Row(controls=[home_button, back_button, self.top_bar_title, edit_button, settings_button]),  # Add back button to top bar
+          content=ft.Row(controls=[back_button, self.top_bar_title, edit_button, settings_button]),  # Add back button to top bar
           bgcolor=ft.colors.BROWN_800,
           width=self.page.window_width,
           height=self.page.window_height * .1)
