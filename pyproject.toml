@@ -1,0 +1,12 @@
+[project]
+name = "Time Tree"
+version = "0.0.1"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["Time Tracking"]
+authors = [
+  {name = "Lucas Lopes Felipe"}
+]
+maintainers = [
+  {name = "Lucas Lopes Felipe"}
+]

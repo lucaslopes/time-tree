@@ -35,7 +35,7 @@ class TimeTree:
         self.page.window_width = 350
         self.page.window_height = 450
         self.page.window_resizable = True
-        self.page.window_always_on_top = True
+        self.page.window_always_on_top = False
         self.page.title = "Time Tree"
 
     def update_entries_list(self):
