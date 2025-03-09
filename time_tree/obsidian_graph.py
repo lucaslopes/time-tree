@@ -97,7 +97,7 @@ calculate_accumulated_duration(G, 'root')
 
 weights = [G.nodes[n]['accumulated_duration'] for n in G.nodes]
 min_weight, max_weight = min(weights), max(weights)
-min_val, max_val = 1, 20
+min_val, max_val = 2, 20
 for e in G.edges:
   u, v, _ = e
   edge_duration = min(G.nodes[n]['accumulated_duration'], G.nodes[v]['accumulated_duration'])
@@ -111,4 +111,4 @@ for n in G.nodes:
 
 st.title('Obsidian Graph')
 net.from_nx(G)
-components.html(net.generate_html(), height=435)
+components.html(net.generate_html(), height=420)
