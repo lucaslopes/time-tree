@@ -8,6 +8,14 @@ import math
 from pathlib import Path
 from obsidiantools import api as otools
 
+# Conversion constants
+YEAR_SEC = 31536000  # 365 days
+WEEK_SEC = 604800    # 7 days
+DAY_SEC = 86400
+HOUR_SEC = 3600
+MINUTE_SEC = 60
+SECOND_SEC = 1
+
 
 def get_time_tracking_data(directory) -> pd.DataFrame:
     """
@@ -44,20 +52,28 @@ def get_time_tracking_data(directory) -> pd.DataFrame:
 
 def calculate_accumulated_duration(G, target_node):
     """
-    Propagates duration values from the leaves up to the target_node.
-    Each node's 'accumulated_duration' is initialized to its own duration
-    (in seconds) and then adds the accumulated durations of its children.
+    Propagates duration values from the leaves up to the target_node using an iterative postorder traversal.
+    Each node's 'accumulated_duration' is initialized to its own duration (in seconds) and then
+    the accumulated durations of its children are added.
     """
+    # Initialize each node's accumulated_duration with its own duration
     for node in G.nodes:
         G.nodes[node]['accumulated_duration'] = G.nodes[node]['duration']
     
-    def post_order(node, parent):
+    # Iterative postorder traversal
+    stack = [(target_node, None)]
+    postorder = []
+    while stack:
+        node, parent = stack.pop()
+        postorder.append((node, parent))
         for neighbor in G.neighbors(node):
             if neighbor != parent:
-                post_order(neighbor, node)
-                G.nodes[node]['accumulated_duration'] += G.nodes[neighbor]['accumulated_duration']
-                
-    post_order(target_node, None)
+                stack.append((neighbor, node))
+    
+    # Process nodes in reverse order (postorder)
+    for node, parent in reversed(postorder):
+        if parent is not None:
+            G.nodes[parent]['accumulated_duration'] += G.nodes[node]['accumulated_duration']
 
 
 def update_yaml_metadata(file_path: Path, node_size, elapsed):
@@ -95,6 +111,22 @@ def update_yaml_metadata(file_path: Path, node_size, elapsed):
     
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
+
+
+def format_elapsed_time(total_seconds: int) -> str:
+    """
+    Formats elapsed time (given in total seconds) into a string like:
+    '2y 51w 6d 23h 59m 59s', showing only non-zero units.
+    """
+    remaining = total_seconds
+    parts = []
+    for unit, unit_sec in (('y', YEAR_SEC), ('w', WEEK_SEC), ('d', DAY_SEC),
+                             ('h', HOUR_SEC), ('m', MINUTE_SEC), ('s', 1)):
+        value = remaining // unit_sec
+        if value > 0:
+            parts.append(f"{value}{unit}")
+        remaining %= unit_sec
+    return " ".join(parts) if parts else "0s"
 
 
 def main():
@@ -151,7 +183,7 @@ def main():
             node_size = math.sqrt(A)
         G.nodes[n]['node_size'] = node_size
         # Format elapsed time as HH:MM:SS (convert seconds to an int for clarity)
-        elapsed_str = str(datetime.timedelta(seconds=int(acc)))
+        elapsed_str = format_elapsed_time(int(acc))
         G.nodes[n]['elapsed'] = elapsed_str
     
     # Update YAML front matter for each note with the calculated properties
