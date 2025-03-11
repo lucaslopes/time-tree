@@ -1,134 +1,119 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin, Notice, TFile } from "obsidian";
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class TimeTree extends Plugin {
 	async onload() {
-		await this.loadSettings();
+		// Execute the steps in sequence for clarity
+		await this.step0_ensureFolders();
+		await this.step1_checkDependency();
+	}
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+	/**
+	 * STEP 0: Ensure that the required folders exist (Templates, Tasks, Logs).
+	 */
+	private async step0_ensureFolders() {
+		await this.ensureFolderExists("Templates");
+		await this.ensureFolderExists("Tasks");
+		await this.ensureFolderExists("Logs");
+	}
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+	/**
+	 * Helper function to ensure a folder with the given name exists in the vault.
+	 * If it doesn't exist, the folder is created.
+	 * @param folderName - The name of the folder to ensure existence
+	 */
+	private async ensureFolderExists(folderName: string) {
+		const folder = this.app.vault.getAbstractFileByPath(folderName);
+		if (!folder) {
+			try {
+				await this.app.vault.createFolder(folderName);
+			} catch (e: any) {
+				if (!e.message.includes("already exists")) {
+					console.error(`Error creating ${folderName} folder:`, e);
 				}
 			}
-		});
+		}
+	}
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+	/**
+	 * STEP 1: Check for the required dependencies.
+	 * Checks if each plugin in the list is missing or disabled.
+	 * If one or more are missing, creates/updates a log note in the Logs folder with details.
+	 */
+	private async step1_checkDependency() {
+		const requiredDependencies = [
+			"obsidian-simple-time-tracker",
+			"dataview",
+		];
+		let missingDependencies: Array<{
+			pluginId: string;
+			manifest: any;
+			isEnabled: boolean;
+		}> = [];
+		for (const pluginId of requiredDependencies) {
+			const appAny = this.app as any;
+			const manifest = appAny.manifests?.[pluginId];
+			const isEnabled = !!appAny.plugins?.plugins?.[pluginId];
+			if (!manifest || !isEnabled) {
+				missingDependencies.push({ pluginId, manifest, isEnabled });
+			}
+		}
+		if (missingDependencies.length > 0) {
+			console.warn(
+				"Some plugins are required for full functionality. Check Logs/plugins.md for details."
+			);
+			await this.createMissingDependencyNote(missingDependencies);
+		}
+	}
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+	/**
+	 * Creates or updates a markdown note in the Logs folder that details the missing dependencies.
+	 * The note title is "plugins.md".
+	 * @param missingDeps - Array of missing dependency objects.
+	 */
+	private async createMissingDependencyNote(
+		missingDeps: Array<{
+			pluginId: string;
+			manifest: any;
+			isEnabled: boolean;
+		}>
+	) {
+		const filePath = "Logs/plugins.md";
+		let noteContent =
+			"# Missing Dependencies\n\nThe following plugins are required for full functionality of the Time Tree plugin:\n\n";
+		for (const dep of missingDeps) {
+			let statusEmoji = "";
+			let statusText = "";
+			if (!dep.manifest) {
+				statusEmoji = "🔴"; // Not installed
+				statusText = "Not installed";
+			} else if (!dep.isEnabled) {
+				statusEmoji = "🟡"; // Installed but disabled
+				statusText = "Installed but not enabled";
+			} else {
+				statusEmoji = "✅";
+				statusText = "Enabled";
+			}
+			noteContent += `- **${dep.pluginId}**: ${statusEmoji} ${statusText}\n  - [Install/Enable](obsidian://show-plugin?id=${dep.pluginId})\n\n`;
+		}
+		noteContent +=
+			"Please install and/or enable the missing plugins. Once resolved, this warning will not appear.\n";
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		try {
+			// If the file already exists, delete it
+			const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+			if (existingFile && existingFile instanceof TFile) {
+				await this.app.vault.delete(existingFile);
+			}
+			// Create a new file with the note content
+			await this.app.vault.create(filePath, noteContent);
+		} catch (e: any) {
+			if (!e.message.includes("already exists")) {
+				console.error("Error creating missing plugins note", e);
+			}
+		}
 	}
 
 	onunload() {
-
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		// Cleanup if necessary
 	}
 }
