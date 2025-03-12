@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { copy } from "esbuild-plugin-copy";
 
 const banner =
 `/*
@@ -31,7 +32,18 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins],
+		...builtins,
+	],
+	plugins: [
+		copy({
+			assets: [
+				{
+					from: ["./manifest.json", "./main.js", "./styles.css"],
+					to: ["./test-vault/.obsidian/plugins/time-tree/."],
+				},
+			],
+		}),
+	],
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
@@ -39,7 +51,8 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: "main.js",
 	minify: prod,
-});
+})
+.catch(() => process.exit(1));
 
 if (prod) {
 	await context.rebuild();
