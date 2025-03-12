@@ -38,26 +38,26 @@ const context = await esbuild.context({
 		copy({
 			assets: [
 				{
-					from: ["./manifest.json", "./main.js", "./styles.css"],
+					from: ["./manifest.json", "./main.js"],
 					to: ["./test-vault/.obsidian/plugins/time-tree/."],
 				},
 			],
 		}),
 	],
 	format: "cjs",
-	watch: !prod,
+	// watch: !prod,
 	target: "es2018",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
-	// minify: prod,
-})
-.catch(() => process.exit(1));
+	minify: prod,
+});
+// .catch(() => process.exit(1));
 
-// if (prod) {
-// 	await context.rebuild();
-// 	process.exit(0);
-// } else {
-// 	await context.watch();
-// }
+if (prod) {
+	await context.rebuild();
+	process.exit(0);
+} else {
+	await context.watch();
+}

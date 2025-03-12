@@ -20,8 +20,19 @@
               "icon": "lucide-file",
               "title": "root"
             }
+          },
+          {
+            "id": "767b5e8ab6b51bdf",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -165,8 +176,23 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "1621c625532b375a",
+  "active": "3ca701b91f802428",
   "lastOpenFiles": [
-    "root.md"
+    "root.md",
+    "level-1-a.md",
+    "level-1-b.md",
+    "level-1-c.md",
+    "level-2a-c.md",
+    "level-2c-a.md",
+    "level-2c-b.md",
+    "level-2c-c.md",
+    "level-2a-a.md",
+    "level-2a-b.md",
+    "level-2b-a.md",
+    "level-2b-b.md",
+    "level-2b-c.md",
+    "level-1-b-1.md",
+    "level-1-c-1.md",
+    "level-1-a-1.md"
   ]
 }

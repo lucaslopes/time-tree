@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Plugin, TFile, Notice } from "obsidian";
+import { Plugin, TFile, Notice } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import * as YAML from "yaml";
@@ -27,6 +27,14 @@ export default class TimeTreePlugin extends Plugin {
                 await this.elapsedChilds();
             },
         });
+
+        this.addCommand({
+            id: "update-node-size",
+            name: "Update Node Size",
+            callback: async () => {
+                await this.updateNodeSizeCommand();
+            },
+        });
     }
 
     async loadSettings(): Promise<void> {
@@ -48,75 +56,9 @@ export default class TimeTreePlugin extends Plugin {
             return;
         }
 
-        const trackers = await this.api.loadAllTrackers(activeFile.path);
-        if (!trackers || trackers.length === 0) {
-            new Notice("No time trackers found in this file.");
-            return;
-        }
-
-        // Sum up the total duration.
-        let totalDuration = 0;
-        if (this.settings.onlyFirstTracker && trackers.length > 0) {
-            totalDuration = this.api.getTotalDuration(
-                trackers[0].tracker.entries
-            );
-        } else {
-            for (const { tracker } of trackers) {
-                totalDuration += this.api.getTotalDuration(tracker.entries);
-            }
-        }
-
-        await this.updateFileFrontmatter(activeFile, (frontmatter) => {
-            frontmatter.elapsed = totalDuration;
-            return frontmatter;
-        });
-        new Notice(`Updated elapsed time: ${totalDuration}`);
-    }
-
-    async elapsedChilds(): Promise<void> {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile) {
-            console.log("No active file.");
-            return;
-        }
-
-        let elapsedChildSum = 0;
-
-        // Retrieve the file's metadata cache to get its outgoing links
-        const fileCache = this.app.metadataCache.getFileCache(activeFile);
-        if (!fileCache || !fileCache.links) {
-            await this.updateFileFrontmatter(activeFile, (frontmatter) => {
-                frontmatter.elapsed_child = 0;
-                new Notice("Leaf note: updated elapsed_child to 0.");
-                return frontmatter;
-            });
-            return;
-        }
-
-        for (const link of fileCache.links) {
-            const childFile = this.app.metadataCache.getFirstLinkpathDest(
-                link.link,
-                activeFile.path
-            );
-            if (childFile) {
-                for (const property of ["elapsed", "elapsed_child"]) {
-                    const val = await this.getProperty(childFile, property);
-                    if (val !== undefined) {
-                        elapsedChildSum += val;
-                    }
-                }
-            } else {
-                console.log(
-                    `Could not resolve child file for link: ${link.link}`
-                );
-            }
-        }
-
-        await this.updateFileFrontmatter(activeFile, (frontmatter) => {
-            frontmatter.elapsed_child = elapsedChildSum;
-            return frontmatter;
-        });
-        new Notice(`Updated elapsed_child: ${elapsedChildSum}`);
+        // Recursively calculate elapsed time for active file and its descendants
+        const totalElapsed = await this.calculateRecursiveElapsedTime(activeFile);
+        new Notice(`Updated recursive elapsed time: ${totalElapsed}`);
     }
 
     /**
@@ -136,11 +78,13 @@ export default class TimeTreePlugin extends Plugin {
         // Retrieve outgoing links from the file's metadata
         const fileCache = this.app.metadataCache.getFileCache(file);
         if (!fileCache || !fileCache.links || fileCache.links.length === 0) {
-            // Leaf node: update elapsed_child as 0 and return own elapsed time
-            await this.updateFileFrontmatter(file, (fm) => {
-                fm.elapsed_child = 0;
-                return fm;
-            });
+            const properties = ownElapsed == 0 ? ["elapsed", "elapsed_child"] : ["elapsed_child"]
+            for (const property of properties) {
+                await this.updateProperty(file, (fm) => {
+                    fm[property] = 0;
+                    return fm;
+                });
+            }
             return ownElapsed;
         }
 
@@ -159,15 +103,11 @@ export default class TimeTreePlugin extends Plugin {
                     childFile
                 );
                 totalDescendantElapsed += childTotal;
-            } else {
-                console.log(
-                    `Could not resolve child file for link: ${link.link}`
-                );
             }
         }
 
         // Update current note's YAML frontmatter: elapsed_child = sum of all descendant elapsed times
-        await this.updateFileFrontmatter(file, (fm) => {
+        await this.updateProperty(file, (fm) => {
             fm.elapsed_child = totalDescendantElapsed;
             return fm;
         });
@@ -176,16 +116,50 @@ export default class TimeTreePlugin extends Plugin {
         return ownElapsed + totalDescendantElapsed;
     }
 
+    async calculateRecursiveElapsedTime(file: TFile): Promise<number> {
+        // Calculate local elapsed time from trackers
+        const trackers = await this.api.loadAllTrackers(file.path);
+        let localElapsed = 0;
+        if (trackers && trackers.length > 0) {
+            if (this.settings.onlyFirstTracker) {
+                localElapsed = this.api.getTotalDuration(trackers[0].tracker.entries);
+            } else {
+                for (const { tracker } of trackers) {
+                    localElapsed += this.api.getTotalDuration(tracker.entries);
+                }
+            }
+        }
+
+        // Update the file's 'elapsed' property with the local elapsed time
+        await this.updateProperty(file, (frontmatter) => {
+            frontmatter.elapsed = localElapsed;
+            return frontmatter;
+        });
+
+        // Recursively process child files to calculate their elapsed time
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        if (fileCache && fileCache.links && fileCache.links.length > 0) {
+            for (const link of fileCache.links) {
+                const childFile = this.app.metadataCache.getFirstLinkpathDest(link.link, file.path);
+                if (childFile) {
+                    await this.calculateRecursiveElapsedTime(childFile);
+                }
+            }
+        }
+
+        return localElapsed
+    }
+
     // Modified elapsedChilds function starting from the active file
-    async elapsedChildsRecursive(): Promise<void> {
+    async elapsedChilds(): Promise<void> {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
-            console.log("No active file.");
+            new Notice("No active file.");
             return;
         }
 
         // Calculate total elapsed for the active file (this will update all descendant notes recursively)
-        const totalElapsed = await this.api.calculateRecursiveElapsedChild(activeFile);
+        const totalElapsed = await this.calculateRecursiveElapsedChild(activeFile);
 
         // Optionally, update the active file's frontmatter or show a Notice
         new Notice(
@@ -220,7 +194,7 @@ export default class TimeTreePlugin extends Plugin {
      * The updater receives the current frontmatter (or an empty object if none exists),
      * and should return the updated frontmatter object.
      */
-    private async updateFileFrontmatter(
+    private async updateProperty(
         file: TFile,
         updater: (frontmatter: any) => any
     ): Promise<void> {
@@ -255,8 +229,81 @@ export default class TimeTreePlugin extends Plugin {
         }
         await this.app.vault.modify(file, newContent);
     }
+
+    /**
+     * Recursively gathers all descendant files from a given file by following its links.
+     */
+    async gatherDescendantFiles(file: TFile, visited: Set<string> = new Set()): Promise<TFile[]> {
+        let files: TFile[] = [];
+        if (visited.has(file.path)) {
+            return files;
+        }
+        visited.add(file.path);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        if (fileCache && fileCache.links && fileCache.links.length > 0) {
+            for (const link of fileCache.links) {
+                const childFile = this.app.metadataCache.getFirstLinkpathDest(link.link, file.path);
+                if (childFile) {
+                    files.push(childFile);
+                    const descendants = await this.gatherDescendantFiles(childFile, visited);
+                    files.push(...descendants);
+                }
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Updates the node_size property for notes in the active file's tree based on the sum of
+     * 'elapsed' and 'elapsed_child'. The maximum node_size (100) corresponds to the maximum
+     * (elapsed+elapsed_child) value in the tree, and the minimum node_size (6) is for notes with 0.
+     */
+    async updateNodeSizeCommand(): Promise<void> {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new Notice("No active file found.");
+            return;
+        }
+        // Gather all descendant files from the active file.
+        const descendantFiles = await this.gatherDescendantFiles(activeFile);
+        // Include the active file in the list.
+        const files = [activeFile, ...descendantFiles];
+        
+        // Compute accumulated time for each file: elapsed + elapsed_child.
+        const accValues: { file: TFile, acc: number }[] = [];
+        for (const file of files) {
+            const elapsed = await this.getProperty(file, "elapsed") || 0;
+            const elapsedChild = await this.getProperty(file, "elapsed_child") || 0;
+            const acc = elapsed + elapsedChild;
+            accValues.push({ file, acc });
+        }
+        
+        // Determine min and max accumulated values among the files.
+        const accNumbers = accValues.map(item => item.acc);
+        const minAcc = Math.min(...accNumbers);
+        const maxAcc = Math.max(...accNumbers);
+        
+        const min_d = 6;
+        const max_d = 100;
+        const A_min = min_d * min_d;  // 36
+        const A_max = max_d * max_d;  // 10000
+        
+        for (const { file, acc } of accValues) {
+            let node_size: number;
+            if (maxAcc === minAcc) {
+                // If all accumulated values are equal, assign based on the value:
+                node_size = (acc === 0) ? min_d : max_d;
+            } else {
+                const A = A_min + ((acc - minAcc) / (maxAcc - minAcc)) * (A_max - A_min);
+                node_size = Math.sqrt(A);
+            }
+            // Update the file's YAML frontmatter with the node_size property
+            await this.updateProperty(file, (frontmatter) => {
+                frontmatter.node_size = node_size;
+                return frontmatter;
+            });
+        }
+        
+        new Notice("Node sizes updated for the active file and its descendants.");
+    }
 }
-
-
-
-
