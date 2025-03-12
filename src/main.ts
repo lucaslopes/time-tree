@@ -80,28 +80,22 @@ export default class TimeTreePlugin extends Plugin {
 	async computeTimeTree(): Promise<void> {
 		const rootPath = this.settings.rootNotePath;
 		if (!rootPath) {
-			new Notice("Root note path is not configured in settings.");
+			new Notice(
+				"Root note path is not configured in Time Tree settings."
+			);
 			return;
 		}
 		const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
 		if (!rootFile || !(rootFile instanceof TFile)) {
-			new Notice("Root note file not found.");
+			new Notice(`Root note ${rootPath} not found.`);
 			return;
 		}
-		const localElapsed =
-			await this.calculator.calculateRecursiveElapsedTime(rootFile);
-		new Notice(`Updated recursive elapsed time: ${localElapsed}`);
-		const totalElapsedChild =
-			await this.calculator.calculateRecursiveElapsedChild(rootFile);
-		const ownElapsed =
-			(await this.frontMatterManager.getProperty(rootFile, "elapsed")) ||
-			0;
-		new Notice(
-			`Updated elapsed_child for root note: ${
-				totalElapsedChild - ownElapsed
-			}`
-		);
+		await this.calculator.calculateRecursiveElapsedTime(rootFile);
+		await this.calculator.calculateRecursiveElapsedChild(rootFile);
 		await this.calculator.updateNodeSizeFromFile(rootFile);
+		new Notice(
+			`Time Tree computed recursively from root note: ${rootPath}`
+		);
 	}
 
 	async insertNewTask(editor: Editor): Promise<void> {

@@ -61,16 +61,16 @@ export class TimeTreeCalculator {
 
 	async calculateRecursiveElapsedChild(
 		file: TFile,
-		recursive: boolean = true,
-		includeOwn: boolean = true
+		recursive: boolean = true
 	): Promise<number> {
-		const content = await this.app.vault.read(file);
-		const yamlRegex = /^---\n([\s\S]*?)\n---/;
-		const yamlMatch = content.match(yamlRegex);
-		let frontmatter = yamlMatch ? YAML.parse(yamlMatch[1]) || {} : {};
-		const ownElapsed = frontmatter.elapsed || 0;
+		const ownElapsed = await this.frontMatterManager.getProperty(
+			file,
+			"elapsed"
+		);
 		const fileCache = this.app.metadataCache.getFileCache(file);
-		if (!fileCache || !fileCache.links || fileCache.links.length === 0) {
+		const childNotes = (fileCache as any).links;
+		const leafNote = !fileCache || !childNotes || childNotes.length === 0;
+		if (leafNote) {
 			const properties =
 				ownElapsed === 0
 					? ["elapsed", "elapsed_child"]
@@ -84,7 +84,7 @@ export class TimeTreeCalculator {
 			return ownElapsed;
 		}
 		let totalDescendantElapsed = 0;
-		for (const link of fileCache.links) {
+		for (const link of childNotes) {
 			const childFile = this.app.metadataCache.getFirstLinkpathDest(
 				link.link,
 				file.path
@@ -97,15 +97,15 @@ export class TimeTreeCalculator {
 					);
 				} else {
 					const childElapsed =
-						(await this.frontMatterManager.getProperty(
+						await this.frontMatterManager.getProperty(
 							childFile,
 							"elapsed"
-						)) || 0;
+						);
 					const childElapsedChilds =
-						(await this.frontMatterManager.getProperty(
+						await this.frontMatterManager.getProperty(
 							childFile,
 							"elapsed_child"
-						)) || 0;
+						);
 					childTotal = childElapsed + childElapsedChilds;
 				}
 				totalDescendantElapsed += childTotal;
@@ -115,21 +115,13 @@ export class TimeTreeCalculator {
 			fm.elapsed_child = totalDescendantElapsed;
 			return fm;
 		});
-		const total = includeOwn
-			? ownElapsed + totalDescendantElapsed
-			: totalDescendantElapsed;
-		return total;
+		return ownElapsed + totalDescendantElapsed;
 	}
 
 	async communicateAscendants(file: TFile): Promise<void> {
 		const parent = await this.getParentFile(file);
 		if (parent) {
-			const parentElapsedChild =
-				await this.calculateRecursiveElapsedChild(parent, false, false);
-			await this.frontMatterManager.updateProperty(parent, (fm) => {
-				fm.elapsed_child = parentElapsedChild;
-				return fm;
-			});
+			await this.calculateRecursiveElapsedChild(parent, false);
 			await this.communicateAscendants(parent);
 		}
 		return;
@@ -226,14 +218,14 @@ export class TimeTreeCalculator {
 		const files = [file, ...descendantFiles];
 		const accValues: { file: TFile; acc: number }[] = [];
 		for (const file of files) {
-			const elapsed =
-				(await this.frontMatterManager.getProperty(file, "elapsed")) ||
-				0;
-			const elapsedChild =
-				(await this.frontMatterManager.getProperty(
-					file,
-					"elapsed_child"
-				)) || 0;
+			const elapsed = await this.frontMatterManager.getProperty(
+				file,
+				"elapsed"
+			);
+			const elapsedChild = await this.frontMatterManager.getProperty(
+				file,
+				"elapsed_child"
+			);
 			const acc = elapsed + elapsedChild;
 			accValues.push({ file, acc });
 		}
@@ -257,7 +249,8 @@ export class TimeTreeCalculator {
 			await this.frontMatterManager.updateProperty(
 				file,
 				(frontmatter) => {
-					frontmatter.node_size = node_size;
+					frontmatter.node_size =
+						typeof node_size === "number" ? node_size : min_d;
 					return frontmatter;
 				}
 			);

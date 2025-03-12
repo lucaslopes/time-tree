@@ -1,6 +1,6 @@
 ---
 elapsed: 8876
-elapsed_child: 142292
+elapsed_child: 439090
 node_size: 100
 ---
 ```simple-time-tracker

@@ -4,77 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "887876fb0dd51f6d",
+        "id": "fc8e044642d6de25",
         "type": "tabs",
         "children": [
           {
-            "id": "98225c0495a73a21",
+            "id": "77b1a0575995a7eb",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-2b-b.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-2b-b"
-            }
-          },
-          {
-            "id": "02df6f495f450d89",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-1-a.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-1-a"
-            }
-          },
-          {
-            "id": "de8fc0ab48970012",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-2a-c.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-2a-c"
-            }
-          },
-          {
-            "id": "ff2267fa21c84338",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-2c-b.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-2c-b"
-            }
-          },
-          {
-            "id": "de41113eb066ad63",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-2b-b.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-2b-b"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -221,16 +161,18 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "98225c0495a73a21",
+  "active": "77b1a0575995a7eb",
   "lastOpenFiles": [
+    "Tasks/level-2b-b.md",
+    "Tasks/sub/newer-task.md",
+    "Tasks/level-2c-b.md",
     "Tasks/level-1-b.md",
+    "Tasks/level-2b-c.md",
+    "Tasks/level-1-c.md",
+    "Tasks/level-2a-b.md",
     "Tasks/level-2a-c.md",
     "Tasks/level-1-a.md",
-    "Tasks/level-1-c.md",
-    "Tasks/level-2c-b.md",
-    "Tasks/level-2b-b.md",
     "Tasks/level-2b-a.md",
-    "Tasks/level-2b-c.md",
     "ref.md",
     "Tasks/root.md",
     "Tasks/level-2c-c.md",
@@ -238,7 +180,6 @@
     "Root",
     "Tasks/level-2c-a.md",
     "Tasks/level-2a-a.md",
-    "Tasks/level-2a-b.md",
     "level-1-b-1.md",
     "level-1-c-1.md",
     "level-1-a-1.md"

@@ -8,24 +8,20 @@ export class FrontMatterManager {
 		this.app = app;
 	}
 
-	async getProperty(
-		file: TFile,
-		property: string
-	): Promise<number | undefined> {
+	async getProperty(file: TFile, property: string): Promise<number> {
+		let propertyValue = 0;
 		try {
 			const content = await this.app.vault.read(file);
 			const yamlRegex = /^---\n([\s\S]*?)\n---/;
 			const yamlMatch = content.match(yamlRegex);
 			if (yamlMatch) {
 				const frontmatter = YAML.parse(yamlMatch[1]) || {};
-				return frontmatter[property];
-			} else {
-				return undefined;
+				propertyValue = (frontmatter[property] || 0) as number;
 			}
 		} catch (err) {
 			console.error("Error reading file:", file.path, err);
-			return undefined;
 		}
+		return propertyValue;
 	}
 
 	async updateProperty(
