@@ -1,7 +1,7 @@
 ---
-elapsed_child: 17856
+elapsed_child: 26071
 elapsed: 0
-node_size: 46.21271573866643
+node_size: 37.771216041547994
 ---
 # [[level-2a-a]]
 # [[level-2a-b]]

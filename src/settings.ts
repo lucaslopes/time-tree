@@ -1,13 +1,13 @@
 export const defaultSettings: TimeTreeSettings = {
-    onlyFirstTracker: false,
-    rootNotePath: "",
-    childNotesFolderPath: "/",
-    recursiveChildNotes: false
+	onlyFirstTracker: false,
+	rootNotePath: "",
+	RootFolderPath: "/",
+	considerSubdirs: false,
 };
 
 export interface TimeTreeSettings {
-    onlyFirstTracker: boolean;
-    rootNotePath: string;
-    childNotesFolderPath: string;
-    recursiveChildNotes: boolean;
+	onlyFirstTracker: boolean;
+	rootNotePath: string;
+	RootFolderPath: string;
+	considerSubdirs: boolean;
 }
