@@ -28,5 +28,24 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 });
             });
+        new Setting(this.containerEl)
+            .setName("Root Note Path")
+            .setDesc("The path of the root note from which the commands will be executed.")
+            .addText((text) => {
+                text.setPlaceholder("Enter root note path")
+                    .setValue(this.plugin.settings.rootNotePath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.rootNotePath = value;
+                        await this.plugin.saveSettings();
+                    });
+
+                // Create a datalist element for file suggestions
+                const dataList = this.containerEl.createEl("datalist", { attr: { id: "file-datalist" } });
+                const files = this.app.vault.getFiles();
+                files.forEach(file => {
+                    dataList.createEl("option", { attr: { value: file.path } });
+                });
+                text.inputEl.setAttr("list", "file-datalist");
+            });
     }
 }

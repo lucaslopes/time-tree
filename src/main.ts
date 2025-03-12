@@ -35,6 +35,13 @@ export default class TimeTreePlugin extends Plugin {
                 await this.updateNodeSizeCommand();
             },
         });
+        this.addCommand({
+            id: "process-from-root",
+            name: "Process Commands from Root Note",
+            callback: async () => {
+                await this.processFromRoot();
+            },
+        });
     }
 
     async loadSettings(): Promise<void> {
@@ -305,5 +312,70 @@ export default class TimeTreePlugin extends Plugin {
         }
         
         new Notice("Node sizes updated for the active file and its descendants.");
+    }
+    async processFromRoot(): Promise<void> {
+        const rootPath = this.settings.rootNotePath;
+        if (!rootPath) {
+            new Notice("Root note path is not configured in settings.");
+            return;
+        }
+
+        const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
+        if (!rootFile || !(rootFile instanceof TFile)) {
+            new Notice("Root note file not found.");
+            return;
+        }
+
+        // Process elapsed time from the root note
+        const localElapsed = await this.calculateRecursiveElapsedTime(rootFile);
+        new Notice(`Updated recursive elapsed time: ${localElapsed}`);
+
+        // Process elapsed_child from the root note
+        const totalElapsedChild = await this.calculateRecursiveElapsedChild(rootFile);
+        const ownElapsed = (await this.getProperty(rootFile, "elapsed")) || 0;
+        new Notice(`Updated elapsed_child for root note: ${totalElapsedChild - ownElapsed}`);
+
+        // Process node sizes from the root note and its descendants
+        await this.updateNodeSizeFromRoot(rootFile);
+    }
+
+    async updateNodeSizeFromRoot(rootFile: TFile): Promise<void> {
+        // Gather all descendant files from the root note
+        const descendantFiles = await this.gatherDescendantFiles(rootFile);
+        const files = [rootFile, ...descendantFiles];
+
+        // Compute accumulated elapsed values for each file
+        const accValues: { file: TFile, acc: number }[] = [];
+        for (const file of files) {
+            const elapsed = (await this.getProperty(file, "elapsed")) || 0;
+            const elapsedChild = (await this.getProperty(file, "elapsed_child")) || 0;
+            const acc = elapsed + elapsedChild;
+            accValues.push({ file, acc });
+        }
+
+        const accNumbers = accValues.map(item => item.acc);
+        const minAcc = Math.min(...accNumbers);
+        const maxAcc = Math.max(...accNumbers);
+
+        const min_d = 6;
+        const max_d = 100;
+        const A_min = min_d * min_d;  // 36
+        const A_max = max_d * max_d;  // 10000
+
+        for (const { file, acc } of accValues) {
+            let node_size: number;
+            if (maxAcc === minAcc) {
+                node_size = (acc === 0) ? min_d : max_d;
+            } else {
+                const A = A_min + ((acc - minAcc) / (maxAcc - minAcc)) * (A_max - A_min);
+                node_size = Math.sqrt(A);
+            }
+            await this.updateProperty(file, (frontmatter) => {
+                frontmatter.node_size = node_size;
+                return frontmatter;
+            });
+        }
+
+        new Notice("Node sizes updated for the root note and its descendants.");
     }
 }
