@@ -1,4 +1,4 @@
-import { Plugin, TFile, Notice } from "obsidian";
+import { Plugin, TFile, Notice, Editor } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
@@ -35,6 +35,14 @@ export default class TimeTreePlugin extends Plugin {
 			name: "Compute hierarchical elapsed time from root note",
 			callback: async () => {
 				await this.computeTimeTree();
+			},
+		});
+
+		this.addCommand({
+			id: "new-task",
+			name: "Insert new task",
+			editorCallback: (editor, view) => {
+				this.insertNewTask(editor);
 			},
 		});
 	}
@@ -94,5 +102,21 @@ export default class TimeTreePlugin extends Plugin {
 			}`
 		);
 		await this.calculator.updateNodeSizeFromFile(rootFile);
+	}
+
+	async insertNewTask(editor: Editor): Promise<void> {
+		let cursor = editor.getCursor();
+		if (cursor.ch !== 0) {
+			const currentLineText = editor.getLine(cursor.line);
+			editor.replaceRange("\n", {
+				line: cursor.line,
+				ch: currentLineText.length,
+			});
+			cursor = { line: cursor.line + 1, ch: 0 };
+			editor.setCursor(cursor);
+		}
+		const textToInsert = "# [[]]";
+		editor.replaceRange(textToInsert, cursor);
+		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
 	}
 }
