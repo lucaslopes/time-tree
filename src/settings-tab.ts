@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, TFolder } from "obsidian";
 import TimeTreePlugin from "./main";
 import { defaultSettings } from "./settings";
 
@@ -46,6 +46,55 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
                     dataList.createEl("option", { attr: { value: file.path } });
                 });
                 text.inputEl.setAttr("list", "file-datalist");
+            });
+        new Setting(this.containerEl)
+            .setName("Tasks Folder Path")
+            .setDesc("The folder path where notes must reside to be considered during the tree-traversal over child notes linked.")
+            .addText((text) => {
+                text.setPlaceholder("Enter folder path")
+                    .setValue(this.plugin.settings.childNotesFolderPath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.childNotesFolderPath = value;
+                        await this.plugin.saveSettings();
+                    });
+
+                // Create a datalist element for folder suggestions using all folders from the vault recursively
+                const folderDataList = this.containerEl.createEl("datalist", { attr: { id: "folder-datalist" } });
+                const rootFolder = this.app.vault.getRoot();
+                const allFolders: TFolder[] = [];
+                
+                function traverse(folder: TFolder) {
+                    allFolders.push(folder);
+                    if (folder.children) {
+                        folder.children.forEach(child => {
+                            if (child instanceof TFolder) {
+                                traverse(child);
+                            }
+                        });
+                    }
+                }
+                
+                traverse(rootFolder);
+                
+                Array.from(allFolders.map(f => f.path))
+                    .sort()
+                    .forEach(folderPath => {
+                        folderDataList.createEl("option", { attr: { value: folderPath } });
+                    });
+
+                text.inputEl.setAttr("list", "folder-datalist");
+            });
+        new Setting(this.containerEl)
+            .setName("Consider Subdirs")
+            .setDesc(
+                "If enabled, consider all notes in subdirectories of the 'Tasks Folder'. If disabled, only consider notes that have the folder as direct parent."
+            )
+            .addToggle((toggle) => {
+                toggle.setValue(this.plugin.settings.recursiveChildNotes);
+                toggle.onChange(async (value) => {
+                    this.plugin.settings.recursiveChildNotes = value;
+                    await this.plugin.saveSettings();
+                });
             });
     }
 }

@@ -251,6 +251,19 @@ export default class TimeTreePlugin extends Plugin {
             for (const link of fileCache.links) {
                 const childFile = this.app.metadataCache.getFirstLinkpathDest(link.link, file.path);
                 if (childFile) {
+                    if (this.settings.childNotesFolderPath) {
+                        if (this.settings.recursiveChildNotes) {
+                            // If recursive is enabled, consider all notes that are in subdirectories of the specified folder
+                            if (!childFile.path.startsWith(this.settings.childNotesFolderPath)) {
+                                continue;
+                            }
+                        } else {
+                            // If recursive is disabled, only consider notes that have the Tasks Folder Path as their direct parent
+                            if (childFile.parent.path !== this.settings.childNotesFolderPath) {
+                                continue;
+                            }
+                        }
+                    }
                     files.push(childFile);
                     const descendants = await this.gatherDescendantFiles(childFile, visited);
                     files.push(...descendants);
