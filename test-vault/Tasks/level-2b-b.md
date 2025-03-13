@@ -1,7 +1,7 @@
 ---
 elapsed: 8679
 descendants: 71016
-node_size: 24.050698379814865
+node_size: 23.97930100017612
 ---
 
 # [[level-3-c]]
