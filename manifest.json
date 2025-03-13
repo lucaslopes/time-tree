@@ -1,7 +1,7 @@
 {
 	"id": "time-tree",
 	"name": "Time Tree",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Track accumulated time spent on unlimited hierarchical tasks",
 	"author": "Lucas Lopes",
