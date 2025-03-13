@@ -1,8 +1,9 @@
 ---
 elapsed: 5952
-elapsed_child: 8440
+descendants: 8440
 node_size: 14.882815188876675
 ---
+
 # [[test-note]]
 
 ```simple-time-tracker

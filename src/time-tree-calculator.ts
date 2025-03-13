@@ -72,9 +72,7 @@ export class TimeTreeCalculator {
 		const leafNote = !fileCache || !childNotes || childNotes.length === 0;
 		if (leafNote) {
 			const properties =
-				ownElapsed === 0
-					? ["elapsed", "elapsed_child"]
-					: ["elapsed_child"];
+				ownElapsed === 0 ? ["elapsed", "descendants"] : ["descendants"];
 			for (const property of properties) {
 				await this.frontMatterManager.updateProperty(file, (fm) => {
 					fm[property] = 0;
@@ -104,7 +102,7 @@ export class TimeTreeCalculator {
 					const childElapsedChilds =
 						await this.frontMatterManager.getProperty(
 							childFile,
-							"elapsed_child"
+							"descendants"
 						);
 					childTotal = childElapsed + childElapsedChilds;
 				}
@@ -112,7 +110,7 @@ export class TimeTreeCalculator {
 			}
 		}
 		await this.frontMatterManager.updateProperty(file, (fm) => {
-			fm.elapsed_child = totalDescendantElapsed;
+			fm.descendants = totalDescendantElapsed;
 			return fm;
 		});
 		return ownElapsed + totalDescendantElapsed;
@@ -224,7 +222,7 @@ export class TimeTreeCalculator {
 			);
 			const elapsedChild = await this.frontMatterManager.getProperty(
 				file,
-				"elapsed_child"
+				"descendants"
 			);
 			const acc = elapsed + elapsedChild;
 			accValues.push({ file, acc });
