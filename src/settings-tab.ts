@@ -30,6 +30,7 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
 		new Setting(this.containerEl)
 			.setName("Root Note Path")
 			.setDesc(
@@ -53,6 +54,7 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 				});
 				text.inputEl.setAttr("list", "file-datalist");
 			});
+
 		new Setting(this.containerEl)
 			.setName("Root Folder Path")
 			.setDesc(
@@ -96,6 +98,7 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 
 				text.inputEl.setAttr("list", "folder-datalist");
 			});
+
 		new Setting(this.containerEl)
 			.setName("Consider Subdirs")
 			.setDesc(
@@ -105,6 +108,29 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 				toggle.setValue(this.settings.considerSubdirs);
 				toggle.onChange(async (value) => {
 					this.settings.considerSubdirs = value;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(this.containerEl)
+			.setName("Compute Interval")
+			.setDesc(
+				"Set the periodic interval to run the 'compute-time-tree' command. Select 'Off' to disable."
+			)
+			.addDropdown((dropdown) => {
+				dropdown.addOption("0", "Off");
+				dropdown.addOption("1", "1 minute");
+				dropdown.addOption("15", "15 minutes");
+				dropdown.addOption("30", "30 minutes");
+				dropdown.addOption("60", "1 hour");
+				dropdown.addOption("360", "6 hours");
+				dropdown.addOption("720", "12 hours");
+				dropdown.addOption("1440", "24 hours");
+				dropdown.setValue(
+					this.settings.computeIntervalMinutes.toString()
+				);
+				dropdown.onChange(async (value) => {
+					this.settings.computeIntervalMinutes = parseInt(value);
 					await this.plugin.saveSettings();
 				});
 			});

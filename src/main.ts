@@ -9,6 +9,7 @@ export default class TimeTreePlugin extends Plugin {
 	public settings: TimeTreeSettings;
 	private frontMatterManager: FrontMatterManager;
 	private calculator: TimeTreeCalculator;
+	private computeIntervalHandle: any;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -45,6 +46,14 @@ export default class TimeTreePlugin extends Plugin {
 				this.insertNewTask(editor);
 			},
 		});
+
+		this.scheduleComputeTimeTree();
+	}
+
+	onunload(): void {
+		if (this.computeIntervalHandle) {
+			clearInterval(this.computeIntervalHandle);
+		}
 	}
 
 	async loadSettings(): Promise<void> {
@@ -57,6 +66,7 @@ export default class TimeTreePlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		this.scheduleComputeTimeTree();
 	}
 
 	async elapsedTime(): Promise<void> {
@@ -90,12 +100,17 @@ export default class TimeTreePlugin extends Plugin {
 			new Notice(`Root note ${rootPath} not found.`);
 			return;
 		}
-		await this.calculator.calculateRecursiveElapsedTime(rootFile);
-		await this.calculator.calculateRecursiveElapsedChild(rootFile);
-		await this.calculator.updateNodeSizeFromFile(rootFile);
-		new Notice(
-			`Time Tree computed recursively from root note: ${rootPath}`
-		);
+
+		// Show a persistent loading notification
+		const loadingNotice = new Notice("Computing Time Tree...", 0);
+		try {
+			await this.calculator.calculateRecursiveElapsedTime(rootFile);
+			await this.calculator.calculateRecursiveElapsedChild(rootFile);
+			await this.calculator.updateNodeSizeFromFile(rootFile);
+			new Notice(`Time Tree computed from note: ${rootPath}`, 1000);
+		} finally {
+			loadingNotice.hide();
+		}
 	}
 
 	async insertNewTask(editor: Editor): Promise<void> {
@@ -112,5 +127,19 @@ export default class TimeTreePlugin extends Plugin {
 		const textToInsert = "# [[]]";
 		editor.replaceRange(textToInsert, cursor);
 		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
+	}
+
+	scheduleComputeTimeTree(): void {
+		// Clear any existing interval
+		if (this.computeIntervalHandle) {
+			clearInterval(this.computeIntervalHandle);
+		}
+		// Only schedule if the compute interval is greater than 0 (enabled)
+		if (this.settings.computeIntervalMinutes > 0) {
+			const intervalMs = this.settings.computeIntervalMinutes * 60 * 1000;
+			this.computeIntervalHandle = setInterval(async () => {
+				await this.computeTimeTree();
+			}, intervalMs);
+		}
 	}
 }
