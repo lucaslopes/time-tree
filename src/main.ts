@@ -1,4 +1,11 @@
-import { Plugin, TFile, Notice, Editor } from "obsidian";
+import {
+	Plugin,
+	TFile,
+	Notice,
+	Editor,
+	MarkdownSectionInformation,
+	ButtonComponent,
+} from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
@@ -24,6 +31,14 @@ export default class TimeTreePlugin extends Plugin {
 		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
 
 		this.addCommand({
+			id: "start-stop",
+			name: "Start/Stop Tracker",
+			callback: async () => {
+				await this.startStopTracker();
+			},
+		});
+
+		this.addCommand({
 			id: "elapsed-time",
 			name: "Update elapsed time of the current note",
 			callback: async () => {
@@ -40,9 +55,9 @@ export default class TimeTreePlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "new-task",
-			name: "Insert new task",
-			editorCallback: (editor, view) => {
+			id: "sub-task",
+			name: "Insert subtask",
+			editorCallback: (editor, _) => {
 				this.insertNewTask(editor);
 			},
 		});
@@ -69,13 +84,25 @@ export default class TimeTreePlugin extends Plugin {
 		this.scheduleComputeTimeTree();
 	}
 
+	async startStopTracker(): Promise<void> {
+		const btn = document.querySelector(
+			".simple-time-tracker-btn"
+		) as HTMLButtonElement | null;
+		if (btn) {
+			btn.click();
+		} else {
+			new Notice("No Start/Stop button found.");
+		}
+	}
+
 	async elapsedTime(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
 			new Notice("No active file found.");
 			return;
 		}
-		const elapsed = await this.calculator.calculateElapsedTime(activeFile);
+		let elapsed = 0;
+		elapsed = await this.calculator.calculateElapsedTime(activeFile);
 		await this.calculator.communicateAscendants(activeFile);
 		const rootPath = this.settings.rootNotePath;
 		if (rootPath) {

@@ -1,6 +1,6 @@
 ---
 elapsed: 295564
-node_size: 80.75873692884493
+node_size: 80.0076575182098
 elapsed_child: 0
 ---
 

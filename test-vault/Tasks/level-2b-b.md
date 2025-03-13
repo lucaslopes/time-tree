@@ -1,7 +1,7 @@
 ---
 elapsed: 8679
 elapsed_child: 295564
-node_size: 81.95329875731319
+node_size: 81.19098657503872
 ---
 # [[level-3-c]]
 # [[testing-new-task]]
