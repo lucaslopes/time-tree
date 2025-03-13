@@ -1,9 +1,9 @@
 export const defaultSettings: TimeTreeSettings = {
-	onlyFirstTracker: false,
+	onlyFirstTracker: true,
 	rootNotePath: "",
 	RootFolderPath: "/",
-	considerSubdirs: false,
-	computeIntervalMinutes: 0, // New property: 0 means disabled by default
+	considerSubdirs: true,
+	computeIntervalMinutes: 0, // 0 means disabled by default
 };
 
 export interface TimeTreeSettings {
@@ -11,5 +11,5 @@ export interface TimeTreeSettings {
 	rootNotePath: string;
 	RootFolderPath: string;
 	considerSubdirs: boolean;
-	computeIntervalMinutes: number; // New property
+	computeIntervalMinutes: number;
 }

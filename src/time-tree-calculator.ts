@@ -35,15 +35,15 @@ export class TimeTreeCalculator {
 				}
 			}
 		}
-		await this.frontMatterManager.updateProperty(file, (frontmatter) => {
-			frontmatter.elapsed = localElapsed;
-			return frontmatter;
-		});
 		return localElapsed;
 	}
 
 	async calculateRecursiveElapsedTime(file: TFile): Promise<number> {
 		let localElapsed = await this.calculateElapsedTime(file);
+		await this.frontMatterManager.updateProperty(file, (frontmatter) => {
+			frontmatter.elapsed = localElapsed;
+			return frontmatter;
+		});
 		const fileCache = this.app.metadataCache.getFileCache(file);
 		if (fileCache && fileCache.links && fileCache.links.length > 0) {
 			for (const link of fileCache.links) {

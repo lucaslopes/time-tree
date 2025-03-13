@@ -1,6 +1,6 @@
 ---
-elapsed: 295564
-node_size: 80.0076575182098
+elapsed: 71016
+node_size: 22.684695682868227
 descendants: 0
 ---
 
