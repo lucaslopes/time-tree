@@ -228,7 +228,7 @@ export class TimeTreeCalculator {
 			accValues.push({ file, acc });
 		}
 		const accNumbers = accValues.map((item) => item.acc);
-		const minAcc = Math.min(...accNumbers);
+		const minAcc = 0;
 		const maxAcc = Math.max(...accNumbers);
 		const min_d = 6;
 		const max_d = 100;
