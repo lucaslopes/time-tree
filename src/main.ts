@@ -115,9 +115,11 @@ export default class TimeTreePlugin extends Plugin {
 		} else {
 			new Notice("No active Markdown editor found.");
 		}
-		const btn = document.querySelector(
-			".simple-time-tracker-btn"
-		) as HTMLButtonElement | null;
+		const btn = activeView
+			? (activeView.containerEl.querySelector(
+					".simple-time-tracker-btn"
+			  ) as HTMLButtonElement | null)
+			: null;
 		if (btn) {
 			btn.click();
 		} else {
