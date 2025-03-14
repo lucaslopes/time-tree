@@ -182,8 +182,8 @@ export default class TimeTreePlugin extends Plugin {
 
 	async insertNewTask(editor: Editor): Promise<void> {
 		let cursor = editor.getCursor();
-		if (cursor.ch !== 0) {
-			const currentLineText = editor.getLine(cursor.line);
+		const currentLineText = editor.getLine(cursor.line);
+		if (currentLineText.trim() !== "" || cursor.ch !== 0) {
 			editor.replaceRange("\n", {
 				line: cursor.line,
 				ch: currentLineText.length,
