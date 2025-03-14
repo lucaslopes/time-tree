@@ -131,4 +131,20 @@ export class FrontMatterManager {
 
 		editor.setCursor({ line: targetLine, ch: 0 });
 	}
+
+	async changeStatus(status: string): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) {
+			new Notice("No active file found.");
+			return;
+		}
+		await this.frontMatterManager.updateProperty(
+			activeFile,
+			(frontmatter) => {
+				frontmatter.status = status;
+				return frontmatter;
+			}
+		);
+		new Notice(`Updated status to ${status}`);
+	}
 }

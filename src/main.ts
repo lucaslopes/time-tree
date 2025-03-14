@@ -56,6 +56,30 @@ export default class TimeTreePlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "change-status-todo",
+			name: "Change status to todo",
+			callback: async () => {
+				await this.changeStatus("todo");
+			},
+		});
+
+		this.addCommand({
+			id: "change-status-doing",
+			name: "Change status to doing",
+			callback: async () => {
+				await this.changeStatus("doing");
+			},
+		});
+
+		this.addCommand({
+			id: "change-status-done",
+			name: "Change status to done",
+			callback: async () => {
+				await this.changeStatus("done");
+			},
+		});
+
 		this.buttonObserver = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
@@ -194,6 +218,22 @@ export default class TimeTreePlugin extends Plugin {
 		const textToInsert = "# [[]]";
 		editor.replaceRange(textToInsert, cursor);
 		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
+	}
+
+	async changeStatus(status: string): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) {
+			new Notice("No active file found.");
+			return;
+		}
+		await this.frontMatterManager.updateProperty(
+			activeFile,
+			(frontmatter) => {
+				frontmatter.status = status;
+				return frontmatter;
+			}
+		);
+		new Notice(`Updated status to ${status}`);
 	}
 
 	scheduleComputeTimeTree(): void {
