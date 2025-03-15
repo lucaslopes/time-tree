@@ -261,7 +261,7 @@ export default class TimeTreePlugin extends Plugin {
 			await this.calculator.calculateRecursiveElapsedTime(rootFile);
 			await this.calculator.calculateRecursiveElapsedChild(rootFile);
 			await this.calculator.updateNodeSizeFromFile(rootFile);
-			new Notice(`Time Tree computed from note: ${rootPath}`, 1000);
+			new Notice(`Time Tree computed from note: ${rootPath}`, 2000);
 		} finally {
 			loadingNotice.hide();
 		}
@@ -333,7 +333,7 @@ export default class TimeTreePlugin extends Plugin {
 		if (runningNote) {
 			this.app.workspace.getLeaf().openFile(runningNote);
 		} else {
-			new Notice("No note with 'running: true' found.");
+			new Notice("No running tracker found.");
 		}
 	}
 
