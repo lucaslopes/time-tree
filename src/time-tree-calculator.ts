@@ -244,6 +244,7 @@ export class TimeTreeCalculator {
 					((acc - minAcc) / (maxAcc - minAcc)) * (A_max - A_min);
 				node_size = Math.sqrt(A);
 			}
+			node_size = Math.round((node_size + Number.EPSILON) * 100) / 100;
 			await this.frontMatterManager.updateProperty(
 				file,
 				(frontmatter) => {
