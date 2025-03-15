@@ -120,6 +120,14 @@ export default class TimeTreePlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "open-running-note",
+			name: "Open Running Note",
+			callback: async () => {
+				await this.openRunningNote();
+			},
+		});
+
 		this.buttonObserver = new MutationObserver((mutations) => {
 			const delay = (ms: number) =>
 				new Promise((resolve) => setTimeout(resolve, ms));
@@ -301,6 +309,31 @@ export default class TimeTreePlugin extends Plugin {
 		);
 		if (verbose) {
 			new Notice(`Updated ${property} to ${value}`);
+		}
+	}
+
+	async openRunningNote(): Promise<void> {
+		const rootPath = this.settings.rootNotePath;
+		if (!rootPath) {
+			new Notice(
+				"Root note path is not configured in Time Tree settings."
+			);
+			return;
+		}
+
+		const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
+		if (!rootFile || !(rootFile instanceof TFile)) {
+			new Notice(`Root note ${rootPath} not found.`);
+			return;
+		}
+
+		const runningNote = await this.frontMatterManager.findRunningNote(
+			rootFile
+		);
+		if (runningNote) {
+			this.app.workspace.getLeaf().openFile(runningNote);
+		} else {
+			new Notice("No note with 'running: true' found.");
 		}
 	}
 

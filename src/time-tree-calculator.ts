@@ -1,7 +1,37 @@
 import { App, TFile, Notice } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
-import * as YAML from "yaml";
+
+export async function gatherDescendantFiles(
+	file: TFile,
+	app: App,
+	visited: Set<string> = new Set()
+): Promise<TFile[]> {
+	let files: TFile[] = [];
+	if (visited.has(file.path)) {
+		return files;
+	}
+	visited.add(file.path);
+	const fileCache = app.metadataCache.getFileCache(file);
+	if (fileCache && fileCache.links && fileCache.links.length > 0) {
+		for (const link of fileCache.links) {
+			const childFile = app.metadataCache.getFirstLinkpathDest(
+				link.link,
+				file.path
+			);
+			if (childFile) {
+				files.push(childFile);
+				const descendants = await gatherDescendantFiles(
+					childFile,
+					app,
+					visited
+				);
+				files.push(...descendants);
+			}
+		}
+	}
+	return files;
+}
 
 export class TimeTreeCalculator {
 	private app: App;
@@ -63,10 +93,10 @@ export class TimeTreeCalculator {
 		file: TFile,
 		recursive: boolean = true
 	): Promise<number> {
-		const ownElapsed = await this.frontMatterManager.getProperty(
+		const ownElapsed = (await this.frontMatterManager.getProperty(
 			file,
 			"elapsed"
-		);
+		)) as number;
 		const fileCache = this.app.metadataCache.getFileCache(file);
 		const childNotes = (fileCache as any).links;
 		const leafNote = !fileCache || !childNotes || childNotes.length === 0;
@@ -95,15 +125,15 @@ export class TimeTreeCalculator {
 					);
 				} else {
 					const childElapsed =
-						await this.frontMatterManager.getProperty(
+						(await this.frontMatterManager.getProperty(
 							childFile,
 							"elapsed"
-						);
+						)) as number;
 					const childElapsedChilds =
-						await this.frontMatterManager.getProperty(
+						(await this.frontMatterManager.getProperty(
 							childFile,
 							"descendants"
-						);
+						)) as number;
 					childTotal = childElapsed + childElapsedChilds;
 				}
 				totalDescendantElapsed += childTotal;
@@ -164,66 +194,19 @@ export class TimeTreeCalculator {
 		return oldestFile;
 	}
 
-	async gatherDescendantFiles(
-		file: TFile,
-		visited: Set<string> = new Set()
-	): Promise<TFile[]> {
-		let files: TFile[] = [];
-		if (visited.has(file.path)) {
-			return files;
-		}
-		visited.add(file.path);
-		const fileCache = this.app.metadataCache.getFileCache(file);
-		if (fileCache && fileCache.links && fileCache.links.length > 0) {
-			for (const link of fileCache.links) {
-				const childFile = this.app.metadataCache.getFirstLinkpathDest(
-					link.link,
-					file.path
-				);
-				if (childFile) {
-					if (this.settings.RootFolderPath) {
-						if (this.settings.considerSubdirs) {
-							if (
-								!childFile.path.startsWith(
-									this.settings.RootFolderPath
-								)
-							) {
-								continue;
-							}
-						} else {
-							if (
-								(childFile as any).parent.path !==
-								this.settings.RootFolderPath
-							) {
-								continue;
-							}
-						}
-					}
-					files.push(childFile);
-					const descendants = await this.gatherDescendantFiles(
-						childFile,
-						visited
-					);
-					files.push(...descendants);
-				}
-			}
-		}
-		return files;
-	}
-
 	async updateNodeSizeFromFile(file: TFile): Promise<void> {
-		const descendantFiles = await this.gatherDescendantFiles(file);
+		const descendantFiles = await gatherDescendantFiles(file, this.app);
 		const files = [file, ...descendantFiles];
 		const accValues: { file: TFile; acc: number }[] = [];
 		for (const file of files) {
-			const elapsed = await this.frontMatterManager.getProperty(
+			const elapsed = (await this.frontMatterManager.getProperty(
 				file,
 				"elapsed"
-			);
-			const elapsedChild = await this.frontMatterManager.getProperty(
+			)) as number;
+			const elapsedChild = (await this.frontMatterManager.getProperty(
 				file,
 				"descendants"
-			);
+			)) as number;
 			const acc = elapsed + elapsedChild;
 			accValues.push({ file, acc });
 		}

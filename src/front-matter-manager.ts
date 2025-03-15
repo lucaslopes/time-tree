@@ -1,4 +1,5 @@
 import { TFile, Notice, App, Editor } from "obsidian";
+import { gatherDescendantFiles } from "./time-tree-calculator";
 import * as YAML from "yaml";
 
 export class FrontMatterManager {
@@ -8,15 +9,18 @@ export class FrontMatterManager {
 		this.app = app;
 	}
 
-	async getProperty(file: TFile, property: string): Promise<number> {
-		let propertyValue = 0;
+	async getProperty(
+		file: TFile,
+		property: string
+	): Promise<boolean | number> {
+		let propertyValue: boolean | number = false;
 		try {
 			const content = await this.app.vault.read(file);
 			const yamlRegex = /^---\n([\s\S]*?)\n---/;
 			const yamlMatch = content.match(yamlRegex);
 			if (yamlMatch) {
 				const frontmatter = YAML.parse(yamlMatch[1]) || {};
-				propertyValue = (frontmatter[property] || 0) as number;
+				propertyValue = frontmatter[property] ?? false;
 			}
 		} catch (err) {
 			console.error("Error reading file:", file.path, err);
@@ -130,5 +134,22 @@ export class FrontMatterManager {
 		}
 
 		editor.setCursor({ line: targetLine, ch: 0 });
+	}
+
+	async findRunningNote(file: TFile): Promise<TFile | null> {
+		const running = await this.getProperty(file, "running");
+		if (running === true) {
+			return file;
+		}
+
+		const descendants = await gatherDescendantFiles(file, this.app);
+		for (const descendant of descendants) {
+			const running = await this.getProperty(descendant, "running");
+			if (running === true) {
+				return descendant;
+			}
+		}
+
+		return null;
 	}
 }
