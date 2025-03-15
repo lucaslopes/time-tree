@@ -152,4 +152,42 @@ export class FrontMatterManager {
 
 		return null;
 	}
+
+	async loadSingleTrackerEntry(
+		editor: Editor,
+		position: number
+	): Promise<object | null> {
+		const fileContent = editor.getValue();
+
+		// Match the simple-time-tracker block
+		const trackerRegex = /```simple-time-tracker\n({.*?})\n```/s;
+		const match = fileContent.match(trackerRegex);
+
+		if (!match) return null;
+
+		const trackerJson = match[1];
+
+		// Match entries array
+		const entriesRegex = /"entries":\s*\[(.*?)\]/s;
+		const entriesMatch = trackerJson.match(entriesRegex);
+
+		if (!entriesMatch) return null;
+
+		const entriesString = entriesMatch[1];
+
+		// Match individual entries using regex
+		const entryRegex = /\{.*?"name":.*?"startTime":.*?"endTime":.*?\}/gs;
+		const allEntries = [...entriesString.matchAll(entryRegex)].map(
+			(m) => m[0]
+		);
+
+		if (allEntries.length === 0) return null;
+
+		// Determine index
+		const index = position >= 0 ? position : allEntries.length + position;
+		if (index < 0 || index >= allEntries.length) return null;
+
+		// Parse and return the selected entry
+		return JSON.parse(allEntries[index]);
+	}
 }

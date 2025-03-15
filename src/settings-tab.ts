@@ -19,19 +19,6 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 		});
 
 		new Setting(this.containerEl)
-			.setName("Only First Tracker")
-			.setDesc(
-				"Whether only the first tracker should be displayed in the tracker table."
-			)
-			.addToggle((t) => {
-				t.setValue(this.settings.onlyFirstTracker);
-				t.onChange(async (v) => {
-					this.settings.onlyFirstTracker = v;
-					await this.plugin.saveSettings();
-				});
-			});
-
-		new Setting(this.containerEl)
 			.setName("Root Note Path")
 			.setDesc(
 				"The path of the root note from which the commands will be executed."
@@ -97,19 +84,6 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 					});
 
 				text.inputEl.setAttr("list", "folder-datalist");
-			});
-
-		new Setting(this.containerEl)
-			.setName("Consider Subdirs")
-			.setDesc(
-				"If enabled, consider all notes in subdirectories of the 'Root Folder'. If disabled, only consider notes that have the folder as direct parent."
-			)
-			.addToggle((toggle) => {
-				toggle.setValue(this.settings.considerSubdirs);
-				toggle.onChange(async (value) => {
-					this.settings.considerSubdirs = value;
-					await this.plugin.saveSettings();
-				});
 			});
 
 		new Setting(this.containerEl)

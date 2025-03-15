@@ -55,15 +55,9 @@ export class TimeTreeCalculator {
 		const trackers = await this.api.loadAllTrackers(file.path);
 		let localElapsed = 0;
 		if (trackers && trackers.length > 0) {
-			if (this.settings.onlyFirstTracker) {
-				localElapsed = this.api.getTotalDuration(
-					trackers[0].tracker.entries
-				);
-			} else {
-				for (const { tracker } of trackers) {
-					localElapsed += this.api.getTotalDuration(tracker.entries);
-				}
-			}
+			localElapsed = this.api.getTotalDuration(
+				trackers[0].tracker.entries
+			);
 		}
 		return localElapsed;
 	}
@@ -164,19 +158,12 @@ export class TimeTreeCalculator {
 			const parentFile = this.app.vault.getAbstractFileByPath(source[0]);
 			if (parentFile instanceof TFile) {
 				if (this.settings.RootFolderPath) {
-					if (this.settings.considerSubdirs) {
-						if (
-							!parentFile.path.startsWith(
-								this.settings.RootFolderPath
-							)
-						)
-							continue;
-					} else {
-						if (
-							(parentFile as any).parent?.path !==
+					if (
+						!parentFile.path.startsWith(
 							this.settings.RootFolderPath
 						)
-							continue;
+					) {
+						continue;
 					}
 				}
 				candidateFiles.push(parentFile);
