@@ -60,7 +60,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-status-todo",
 			name: "Change status to todo",
 			callback: async () => {
-				await this.changeStatus("todo");
+				await this.updateNoteProperty("status", "todo");
 			},
 		});
 
@@ -68,7 +68,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-status-doing",
 			name: "Change status to doing",
 			callback: async () => {
-				await this.changeStatus("doing");
+				await this.updateNoteProperty("status", "doing");
 			},
 		});
 
@@ -76,7 +76,47 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-status-done",
 			name: "Change status to done",
 			callback: async () => {
-				await this.changeStatus("done");
+				await this.updateNoteProperty("status", "done");
+			},
+		});
+
+		this.addCommand({
+			id: "change-priority-lowest",
+			name: "Change priority to Lowest",
+			callback: async () => {
+				await this.updateNoteProperty("priority", "Lowest");
+			},
+		});
+
+		this.addCommand({
+			id: "change-priority-low",
+			name: "Change priority to Low",
+			callback: async () => {
+				await this.updateNoteProperty("priority", "Low");
+			},
+		});
+
+		this.addCommand({
+			id: "change-priority-medium",
+			name: "Change priority to Medium",
+			callback: async () => {
+				await this.updateNoteProperty("priority", "Medium");
+			},
+		});
+
+		this.addCommand({
+			id: "change-priority-high",
+			name: "Change priority to High",
+			callback: async () => {
+				await this.updateNoteProperty("priority", "High");
+			},
+		});
+
+		this.addCommand({
+			id: "change-priority-highest",
+			name: "Change priority to Highest",
+			callback: async () => {
+				await this.updateNoteProperty("priority", "Highest");
 			},
 		});
 
@@ -220,7 +260,7 @@ export default class TimeTreePlugin extends Plugin {
 		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
 	}
 
-	async changeStatus(status: string): Promise<void> {
+	async updateNoteProperty(property: string, value: string): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
 			new Notice("No active file found.");
@@ -229,11 +269,11 @@ export default class TimeTreePlugin extends Plugin {
 		await this.frontMatterManager.updateProperty(
 			activeFile,
 			(frontmatter) => {
-				frontmatter.status = status;
+				frontmatter[property] = value;
 				return frontmatter;
 			}
 		);
-		new Notice(`Updated status to ${status}`);
+		new Notice(`Updated ${property} to ${value}`);
 	}
 
 	scheduleComputeTimeTree(): void {
