@@ -49,5 +49,32 @@
       ],
       "key": "S"
     }
+  ],
+  "time-tree:change-status-doing": [
+    {
+      "modifiers": [
+        "Alt",
+        "Shift"
+      ],
+      "key": "2"
+    }
+  ],
+  "time-tree:change-status-done": [
+    {
+      "modifiers": [
+        "Alt",
+        "Shift"
+      ],
+      "key": "3"
+    }
+  ],
+  "time-tree:change-status-todo": [
+    {
+      "modifiers": [
+        "Alt",
+        "Shift"
+      ],
+      "key": "1"
+    }
   ]
 }

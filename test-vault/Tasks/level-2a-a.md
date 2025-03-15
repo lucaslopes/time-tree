@@ -1,7 +1,7 @@
 ---
 elapsed: 5952
-descendants: 1142837
-node_size: 91.59309238491296
+descendants: 21260
+node_size: 30.211062338749347
 ---
 
 # [[test-note]]

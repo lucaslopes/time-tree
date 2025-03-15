@@ -1,7 +1,7 @@
 ---
-descendants: 1174106
+descendants: 52529
 elapsed: 0
-node_size: 92.5977491517517
+node_size: 44.234793196371015
 ---
 
 # [[level-2a-a]]

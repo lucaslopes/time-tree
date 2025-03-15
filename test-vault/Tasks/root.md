@@ -1,6 +1,6 @@
 ---
 elapsed: 8876
-descendants: 1360278
+descendants: 238701
 node_size: 100
 ---
 
