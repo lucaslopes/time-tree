@@ -58,7 +58,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-status-todo",
-			name: "Change status to todo",
+			name: 'Change status to "todo"',
 			callback: async () => {
 				await this.updateNoteProperty("status", "todo");
 			},
@@ -66,7 +66,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-status-doing",
-			name: "Change status to doing",
+			name: 'Change status to "doing"',
 			callback: async () => {
 				await this.updateNoteProperty("status", "doing");
 			},
@@ -74,7 +74,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-status-done",
-			name: "Change status to done",
+			name: 'Change status to "done"',
 			callback: async () => {
 				await this.updateNoteProperty("status", "done");
 			},
@@ -82,7 +82,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-priority-lowest",
-			name: "Change priority to Lowest",
+			name: 'Change priority to "Lowest"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Lowest");
 			},
@@ -90,7 +90,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-priority-low",
-			name: "Change priority to Low",
+			name: 'Change priority to "Low"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Low");
 			},
@@ -98,7 +98,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-priority-medium",
-			name: "Change priority to Medium",
+			name: 'Change priority to "Medium"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Medium");
 			},
@@ -106,7 +106,7 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-priority-high",
-			name: "Change priority to High",
+			name: 'Change priority to "High"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "High");
 			},
@@ -114,13 +114,15 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.addCommand({
 			id: "change-priority-highest",
-			name: "Change priority to Highest",
+			name: 'Change priority to "Highest"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Highest");
 			},
 		});
 
 		this.buttonObserver = new MutationObserver((mutations) => {
+			const delay = (ms: number) =>
+				new Promise((resolve) => setTimeout(resolve, ms));
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
 					if (node instanceof HTMLElement) {
@@ -128,11 +130,24 @@ export default class TimeTreePlugin extends Plugin {
 							".simple-time-tracker-btn"
 						) as HTMLButtonElement | null;
 						if (btn) {
-							btn.addEventListener("click", () => {
+							btn.addEventListener("click", async () => {
 								const btnStatus =
 									btn.getAttribute("aria-label");
 								if (btnStatus === "End") {
 									this.elapsedTime();
+									await delay(100);
+									await this.updateNoteProperty(
+										"running",
+										"false",
+										false
+									);
+								} else {
+									await delay(100);
+									await this.updateNoteProperty(
+										"running",
+										"true",
+										false
+									);
 								}
 							});
 						}
@@ -260,20 +275,33 @@ export default class TimeTreePlugin extends Plugin {
 		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
 	}
 
-	async updateNoteProperty(property: string, value: string): Promise<void> {
+	async updateNoteProperty(
+		property: string,
+		value: string,
+		verbose: boolean = true
+	): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
 			new Notice("No active file found.");
 			return;
 		}
+		const valueBool = value === "true" || value === "false";
+		const valueInput = valueBool
+			? value === "true"
+				? true
+				: false
+			: value;
+
 		await this.frontMatterManager.updateProperty(
 			activeFile,
 			(frontmatter) => {
-				frontmatter[property] = value;
+				frontmatter[property] = valueInput;
 				return frontmatter;
 			}
 		);
-		new Notice(`Updated ${property} to ${value}`);
+		if (verbose) {
+			new Notice(`Updated ${property} to ${value}`);
+		}
 	}
 
 	scheduleComputeTimeTree(): void {
