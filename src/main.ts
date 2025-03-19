@@ -266,10 +266,11 @@ export default class TimeTreePlugin extends Plugin {
 	async updateNoteProperty(
 		property: string,
 		value: string,
-		verbose = true
+		verbose = true,
+		file?: TFile
 	): Promise<void> {
-		const activeFile = this.app.workspace.getActiveFile();
-		if (!activeFile) {
+		const targetFile = file || this.app.workspace.getActiveFile();
+		if (!targetFile) {
 			new Notice("No active file found.");
 			return;
 		}
@@ -281,7 +282,7 @@ export default class TimeTreePlugin extends Plugin {
 			: value;
 
 		await this.frontMatterManager.updateProperty(
-			activeFile,
+			targetFile,
 			(frontmatter) => {
 				frontmatter[property] = valueInput;
 				return frontmatter;
@@ -308,6 +309,34 @@ export default class TimeTreePlugin extends Plugin {
 		}
 
 		await this.updateNoteProperty("status", newStatus);
+
+		if (newStatus === "todo") {
+			await this.propagateStatusToAncestors(activeFile, "todo");
+		} else if (newStatus === "done") {
+			await this.propagateStatusToAncestors(activeFile, "done");
+		}
+	}
+
+	async propagateStatusToAncestors(file: TFile, status: string): Promise<void> {
+		const parent = await this.calculator.getParentFile(file);
+		if (parent) {
+			if (status === "todo") {
+				await this.updateNoteProperty("status", "todo", false, parent);
+				await this.propagateStatusToAncestors(parent, "todo");
+			} else if (status === "done") {
+				const childFiles = await this.calculator.getChildFiles(parent);
+				const allChildrenDone = await Promise.all(
+					childFiles.map(async (child) => {
+						const childStatus = await this.frontMatterManager.getProperty(child, "status");
+						return childStatus === "done";
+					})
+				);
+				if (allChildrenDone.every((done) => done)) {
+					await this.updateNoteProperty("status", "done", false, parent);
+					await this.propagateStatusToAncestors(parent, "done");
+				}
+			}
+		}
 	}
 
 	async openDoingNote(): Promise<void> {

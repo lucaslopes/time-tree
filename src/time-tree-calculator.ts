@@ -225,4 +225,18 @@ export class TimeTreeCalculator {
 			);
 		}
 	}
+
+	async getChildFiles(file: TFile): Promise<TFile[]> {
+		const fileCache = this.app.metadataCache.getFileCache(file);
+		const childFiles: TFile[] = [];
+		if (fileCache && fileCache.links && fileCache.links.length > 0) {
+			for (const link of fileCache.links) {
+				const childFile = this.app.metadataCache.getFirstLinkpathDest(link.link, file.path);
+				if (childFile) {
+					childFiles.push(childFile);
+				}
+			}
+		}
+		return childFiles;
+	}
 }
