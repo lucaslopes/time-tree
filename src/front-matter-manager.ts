@@ -12,7 +12,7 @@ export class FrontMatterManager {
 	async getProperty(
 		file: TFile,
 		property: string
-	): Promise<boolean | number> {
+	): Promise<boolean | number | string> {
 		let propertyValue: boolean | number = false;
 		try {
 			const content = await this.app.vault.read(file);
@@ -136,16 +136,16 @@ export class FrontMatterManager {
 		editor.setCursor({ line: targetLine, ch: 0 });
 	}
 
-	async findRunningNote(file: TFile): Promise<TFile | null> {
-		const running = await this.getProperty(file, "running");
-		if (running === true) {
+	async findDoingNote(file: TFile): Promise<TFile | null> {
+		const doing = await this.getProperty(file, "status");
+		if (doing === 'doing') {
 			return file;
 		}
 
 		const descendants = await gatherDescendantFiles(file, this.app);
 		for (const descendant of descendants) {
-			const running = await this.getProperty(descendant, "running");
-			if (running === true) {
+			const doing = await this.getProperty(descendant, "status");
+			if (doing === 'doing') {
 				return descendant;
 			}
 		}

@@ -124,7 +124,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "open-running-note",
 			name: "Open Running Note",
 			callback: async () => {
-				await this.openRunningNote();
+				await this.openDoingNote();
 			},
 		});
 
@@ -145,15 +145,15 @@ export default class TimeTreePlugin extends Plugin {
 									this.elapsedTime();
 									await delay(100);
 									await this.updateNoteProperty(
-										"running",
-										"false",
+										"status",
+										"todo",
 										false
 									);
 								} else {
 									await delay(100);
 									await this.updateNoteProperty(
-										"running",
-										"true",
+										"status",
+										"doing",
 										false
 									);
 								}
@@ -203,9 +203,7 @@ export default class TimeTreePlugin extends Plugin {
 			new Notice("No active Markdown editor found.");
 		}
 		const btn = activeView
-			? (activeView.containerEl.querySelector(
-					".simple-time-tracker-btn"
-			  ) as HTMLButtonElement | null)
+			? (activeView.containerEl.querySelector(".simple-time-tracker-btn") as HTMLButtonElement | null)
 			: null;
 		if (btn) {
 			btn.click();
@@ -284,7 +282,7 @@ export default class TimeTreePlugin extends Plugin {
 	async updateNoteProperty(
 		property: string,
 		value: string,
-		verbose: boolean = true
+		verbose = true
 	): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
@@ -310,7 +308,7 @@ export default class TimeTreePlugin extends Plugin {
 		}
 	}
 
-	async openRunningNote(): Promise<void> {
+	async openDoingNote(): Promise<void> {
 		const rootPath = this.settings.rootNotePath;
 		if (!rootPath) {
 			new Notice(
@@ -325,11 +323,11 @@ export default class TimeTreePlugin extends Plugin {
 			return;
 		}
 
-		const runningNote = await this.frontMatterManager.findRunningNote(
+		const doingNote = await this.frontMatterManager.findDoingNote(
 			rootFile
 		);
-		if (runningNote) {
-			this.app.workspace.getLeaf().openFile(runningNote);
+		if (doingNote) {
+			this.app.workspace.getLeaf().openFile(doingNote);
 		} else {
 			new Notice("No running tracker found.");
 		}
