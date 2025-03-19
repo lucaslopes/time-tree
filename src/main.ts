@@ -52,7 +52,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "sub-task",
 			name: "Insert subtask",
 			editorCallback: (editor, _) => {
-				this.insertNewTask(editor);
+				this.insertSubTask(editor);
 			},
 		});
 
@@ -267,15 +267,13 @@ export default class TimeTreePlugin extends Plugin {
 		}
 	}
 
-	async insertNewTask(editor: Editor): Promise<void> {
+	async insertSubTask(editor: Editor): Promise<void> {
 		let cursor = editor.getCursor();
 		const currentLineText = editor.getLine(cursor.line);
 		if (currentLineText.trim() !== "" || cursor.ch !== 0) {
-			editor.replaceRange("\n", {
-				line: cursor.line,
-				ch: currentLineText.length,
-			});
-			cursor = { line: cursor.line + 1, ch: 0 };
+			editor.setCursor({ line: cursor.line, ch: 0 });  // Move the cursor to the beginning of the current line
+			editor.replaceRange("\n", { line: cursor.line, ch: 0 });  // Break the line at the cursor position
+			cursor = { line: cursor.line, ch: 0 };  // Move the cursor to the previous line of cursor.line
 			editor.setCursor(cursor);
 		}
 		const textToInsert = "# [[]]";
