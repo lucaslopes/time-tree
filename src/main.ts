@@ -57,26 +57,10 @@ export default class TimeTreePlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "change-status-todo",
-			name: 'Change status to "todo"',
+			id: "toggle-status",
+			name: 'Toggle status between "todo" and "done"',
 			callback: async () => {
-				await this.updateNoteProperty("status", "todo");
-			},
-		});
-
-		this.addCommand({
-			id: "change-status-doing",
-			name: 'Change status to "doing"',
-			callback: async () => {
-				await this.updateNoteProperty("status", "doing");
-			},
-		});
-
-		this.addCommand({
-			id: "change-status-done",
-			name: 'Change status to "done"',
-			callback: async () => {
-				await this.updateNoteProperty("status", "done");
+				await this.toggleStatus();
 			},
 		});
 
@@ -306,6 +290,24 @@ export default class TimeTreePlugin extends Plugin {
 		if (verbose) {
 			new Notice(`Updated ${property} to ${value}`);
 		}
+	}
+
+	async toggleStatus(): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) {
+			new Notice("No active file found.");
+			return;
+		}
+
+		const currentStatus = await this.frontMatterManager.getProperty(activeFile, "status");
+		let newStatus = "doing";
+		if (currentStatus === "todo") {
+			newStatus = "done";
+		} else if (currentStatus === "done") {
+			newStatus = "todo";
+		}
+
+		await this.updateNoteProperty("status", newStatus);
 	}
 
 	async openDoingNote(): Promise<void> {
