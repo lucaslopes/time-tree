@@ -69,6 +69,10 @@ export default class TimeTreePlugin extends Plugin {
 			name: 'Change priority to "Lowest"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Lowest");
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					await this.propagatePriorityToDescendants(activeFile, "Lowest");
+				}
 			},
 		});
 
@@ -77,6 +81,10 @@ export default class TimeTreePlugin extends Plugin {
 			name: 'Change priority to "Low"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Low");
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					await this.propagatePriorityToDescendants(activeFile, "Low");
+				}
 			},
 		});
 
@@ -85,6 +93,10 @@ export default class TimeTreePlugin extends Plugin {
 			name: 'Change priority to "Medium"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Medium");
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					await this.propagatePriorityToDescendants(activeFile, "Medium");
+				}
 			},
 		});
 
@@ -93,6 +105,10 @@ export default class TimeTreePlugin extends Plugin {
 			name: 'Change priority to "High"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "High");
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					await this.propagatePriorityToDescendants(activeFile, "High");
+				}
 			},
 		});
 
@@ -101,6 +117,10 @@ export default class TimeTreePlugin extends Plugin {
 			name: 'Change priority to "Highest"',
 			callback: async () => {
 				await this.updateNoteProperty("priority", "Highest");
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					await this.propagatePriorityToDescendants(activeFile, "Highest");
+				}
 			},
 		});
 
@@ -336,6 +356,14 @@ export default class TimeTreePlugin extends Plugin {
 					await this.propagateStatusToAncestors(parent, "done");
 				}
 			}
+		}
+	}
+
+	async propagatePriorityToDescendants(file: TFile, priority: string): Promise<void> {
+		const childFiles = await this.calculator.getChildFiles(file);
+		for (const child of childFiles) {
+			await this.updateNoteProperty("priority", priority, false, child);
+			await this.propagatePriorityToDescendants(child, priority);
 		}
 	}
 
