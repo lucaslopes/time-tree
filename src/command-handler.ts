@@ -45,6 +45,18 @@ export class TimeTreeHandler {
 		}
 	}
 
+	async handleTrackerButtonClick(isEnd: boolean): Promise<void> {
+        const delay = (ms: number) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+        let status = "doing";
+		if (isEnd) {
+            await this.elapsedTime();
+			status = "done";
+		}
+		await delay(100);
+		await this.updateNoteProperty("status", status, false);
+    }
+
 	async elapsedTime(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {

@@ -133,8 +133,6 @@ export default class TimeTreePlugin extends Plugin {
 		});
 
 		this.buttonObserver = new MutationObserver((mutations) => {
-			const delay = (ms: number) =>
-				new Promise((resolve) => setTimeout(resolve, ms));
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
 					if (node instanceof HTMLElement) {
@@ -145,22 +143,7 @@ export default class TimeTreePlugin extends Plugin {
 							btn.addEventListener("click", async () => {
 								const btnStatus =
 									btn.getAttribute("aria-label");
-								if (btnStatus === "End") {
-									this.commandHandler.elapsedTime();
-									await delay(100);
-									await this.commandHandler.updateNoteProperty(
-										"status",
-										"todo",
-										false
-									);
-								} else {
-									await delay(100);
-									await this.commandHandler.updateNoteProperty(
-										"status",
-										"doing",
-										false
-									);
-								}
+								await this.commandHandler.handleTrackerButtonClick(btnStatus === "End");
 							});
 						}
 					}
