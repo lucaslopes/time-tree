@@ -32,7 +32,7 @@ export class FrontMatterManager {
 		file: TFile,
 		updater: (frontmatter: any) => any
 	): Promise<void> {
-		let content = await this.app.vault.read(file);
+		const content = await this.app.vault.read(file);
 		const yamlRegex = /^---\n([\s\S]*?)\n---/;
 		const yamlMatch = content.match(yamlRegex);
 		let newYamlBlock: string;

@@ -1,4 +1,4 @@
-import { App, TFile, Notice } from "obsidian";
+import { App, TFile } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
 
@@ -7,7 +7,7 @@ export async function gatherDescendantFiles(
 	app: App,
 	visited: Set<string> = new Set()
 ): Promise<TFile[]> {
-	let files: TFile[] = [];
+	const files: TFile[] = [];
 	if (visited.has(file.path)) {
 		return files;
 	}
@@ -63,7 +63,7 @@ export class TimeTreeCalculator {
 	}
 
 	async calculateRecursiveElapsedTime(file: TFile): Promise<number> {
-		let localElapsed = await this.calculateElapsedTime(file);
+		const localElapsed = await this.calculateElapsedTime(file);
 		await this.frontMatterManager.updateProperty(file, (frontmatter) => {
 			frontmatter.elapsed = localElapsed;
 			return frontmatter;
@@ -85,7 +85,7 @@ export class TimeTreeCalculator {
 
 	async calculateRecursiveElapsedChild(
 		file: TFile,
-		recursive: boolean = true
+		recursive = true
 	): Promise<number> {
 		const ownElapsed = (await this.frontMatterManager.getProperty(
 			file,
@@ -153,7 +153,7 @@ export class TimeTreeCalculator {
 		const backlinks = (this.app.metadataCache as any).getBacklinksForFile(
 			file
 		);
-		let candidateFiles: TFile[] = [];
+		const candidateFiles: TFile[] = [];
 		for (const source of backlinks["data"]) {
 			const parentFile = this.app.vault.getAbstractFileByPath(source[0]);
 			if (parentFile instanceof TFile) {

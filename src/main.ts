@@ -1,24 +1,24 @@
-import { Plugin, TFile, Notice, Editor, MarkdownView } from "obsidian";
+import { Plugin } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
-import { TimeTreeCalculator } from "./time-tree-calculator";
+import { TimeTreeHandler } from "./command-handler";
 
 export default class TimeTreePlugin extends Plugin {
 	public api = (this.app as any).plugins.plugins["simple-time-tracker"].api;
 	public settings: TimeTreeSettings;
 	private frontMatterManager: FrontMatterManager;
-	private calculator: TimeTreeCalculator;
 	private computeIntervalHandle: any;
 	private buttonObserver: MutationObserver | null = null;
+	private commandHandler: TimeTreeHandler;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.frontMatterManager = new FrontMatterManager(this.app);
-		this.calculator = new TimeTreeCalculator(
+		this.commandHandler = new TimeTreeHandler(
 			this.app,
-			this.settings,
 			this.api,
+			this.settings,
 			this.frontMatterManager
 		);
 
@@ -28,7 +28,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "start-stop",
 			name: "Start/Stop Tracker",
 			callback: async () => {
-				await this.startStopTracker();
+				await this.commandHandler.startStopTracker();
 			},
 		});
 
@@ -36,7 +36,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "elapsed-time",
 			name: "Update elapsed time of the current note",
 			callback: async () => {
-				await this.elapsedTime();
+				await this.commandHandler.elapsedTime();
 			},
 		});
 
@@ -44,7 +44,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "compute-time-tree",
 			name: "Compute hierarchical elapsed time from root note",
 			callback: async () => {
-				await this.computeTimeTree();
+				await this.commandHandler.computeTimeTree();
 			},
 		});
 
@@ -52,7 +52,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "sub-task",
 			name: "Insert subtask",
 			editorCallback: (editor, _) => {
-				this.insertSubTask(editor);
+				this.commandHandler.insertSubTask(editor);
 			},
 		});
 
@@ -60,7 +60,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "toggle-status",
 			name: 'Toggle status between "todo" and "done"',
 			callback: async () => {
-				await this.toggleStatus();
+				await this.commandHandler.toggleStatus();
 			},
 		});
 
@@ -68,10 +68,10 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-priority-lowest",
 			name: 'Change priority to "Lowest"',
 			callback: async () => {
-				await this.updateNoteProperty("priority", "Lowest");
+				await this.commandHandler.updateNoteProperty("priority", "Lowest");
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
-					await this.propagatePriorityToDescendants(activeFile, "Lowest");
+					await this.commandHandler.propagatePriorityToDescendants(activeFile, "Lowest");
 				}
 			},
 		});
@@ -80,10 +80,10 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-priority-low",
 			name: 'Change priority to "Low"',
 			callback: async () => {
-				await this.updateNoteProperty("priority", "Low");
+				await this.commandHandler.updateNoteProperty("priority", "Low");
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
-					await this.propagatePriorityToDescendants(activeFile, "Low");
+					await this.commandHandler.propagatePriorityToDescendants(activeFile, "Low");
 				}
 			},
 		});
@@ -92,10 +92,10 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-priority-medium",
 			name: 'Change priority to "Medium"',
 			callback: async () => {
-				await this.updateNoteProperty("priority", "Medium");
+				await this.commandHandler.updateNoteProperty("priority", "Medium");
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
-					await this.propagatePriorityToDescendants(activeFile, "Medium");
+					await this.commandHandler.propagatePriorityToDescendants(activeFile, "Medium");
 				}
 			},
 		});
@@ -104,10 +104,10 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-priority-high",
 			name: 'Change priority to "High"',
 			callback: async () => {
-				await this.updateNoteProperty("priority", "High");
+				await this.commandHandler.updateNoteProperty("priority", "High");
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
-					await this.propagatePriorityToDescendants(activeFile, "High");
+					await this.commandHandler.propagatePriorityToDescendants(activeFile, "High");
 				}
 			},
 		});
@@ -116,10 +116,10 @@ export default class TimeTreePlugin extends Plugin {
 			id: "change-priority-highest",
 			name: 'Change priority to "Highest"',
 			callback: async () => {
-				await this.updateNoteProperty("priority", "Highest");
+				await this.commandHandler.updateNoteProperty("priority", "Highest");
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
-					await this.propagatePriorityToDescendants(activeFile, "Highest");
+					await this.commandHandler.propagatePriorityToDescendants(activeFile, "Highest");
 				}
 			},
 		});
@@ -128,7 +128,7 @@ export default class TimeTreePlugin extends Plugin {
 			id: "open-running-note",
 			name: "Open Running Note",
 			callback: async () => {
-				await this.openDoingNote();
+				await this.commandHandler.openDoingNote();
 			},
 		});
 
@@ -146,16 +146,16 @@ export default class TimeTreePlugin extends Plugin {
 								const btnStatus =
 									btn.getAttribute("aria-label");
 								if (btnStatus === "End") {
-									this.elapsedTime();
+									this.commandHandler.elapsedTime();
 									await delay(100);
-									await this.updateNoteProperty(
+									await this.commandHandler.updateNoteProperty(
 										"status",
 										"todo",
 										false
 									);
 								} else {
 									await delay(100);
-									await this.updateNoteProperty(
+									await this.commandHandler.updateNoteProperty(
 										"status",
 										"doing",
 										false
@@ -197,201 +197,6 @@ export default class TimeTreePlugin extends Plugin {
 		this.scheduleComputeTimeTree();
 	}
 
-	async startStopTracker(): Promise<void> {
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (activeView) {
-			await this.frontMatterManager.adjustCursorOutsideTracker(
-				activeView.editor
-			);
-		} else {
-			new Notice("No active Markdown editor found.");
-		}
-		const btn = activeView
-			? (activeView.containerEl.querySelector(".simple-time-tracker-btn") as HTMLButtonElement | null)
-			: null;
-		if (btn) {
-			btn.click();
-		} else {
-			new Notice("No Start/Stop button found.");
-		}
-	}
-
-	async elapsedTime(): Promise<void> {
-		const activeFile = this.app.workspace.getActiveFile();
-		if (!activeFile) {
-			new Notice("No active file found.");
-			return;
-		}
-		let elapsed = 0;
-		elapsed = await this.calculator.calculateElapsedTime(activeFile);
-		await new Promise((resolve) => setTimeout(resolve, 10));
-		await this.frontMatterManager.updateProperty(
-			activeFile,
-			(frontmatter) => {
-				frontmatter.elapsed = elapsed;
-				return frontmatter;
-			}
-		);
-		await this.calculator.communicateAscendants(activeFile);
-		const rootPath = this.settings.rootNotePath;
-		if (rootPath) {
-			const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
-			if (rootFile && rootFile instanceof TFile) {
-				await this.calculator.updateNodeSizeFromFile(rootFile);
-			}
-		}
-		new Notice(`Updated elapsed time: ${elapsed}`);
-	}
-
-	async computeTimeTree(): Promise<void> {
-		const rootPath = this.settings.rootNotePath;
-		if (!rootPath) {
-			new Notice(
-				"Root note path is not configured in Time Tree settings."
-			);
-			return;
-		}
-		const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
-		if (!rootFile || !(rootFile instanceof TFile)) {
-			new Notice(`Root note ${rootPath} not found.`);
-			return;
-		}
-
-		// Show a persistent loading notification
-		const loadingNotice = new Notice("Computing Time Tree...", 0);
-		try {
-			await this.calculator.calculateRecursiveElapsedTime(rootFile);
-			await this.calculator.calculateRecursiveElapsedChild(rootFile);
-			await this.calculator.updateNodeSizeFromFile(rootFile);
-			new Notice(`Time Tree computed from note: ${rootPath}`, 2000);
-		} finally {
-			loadingNotice.hide();
-		}
-	}
-
-	async insertSubTask(editor: Editor): Promise<void> {
-		let cursor = editor.getCursor();
-		const currentLineText = editor.getLine(cursor.line);
-		if (currentLineText.trim() !== "" || cursor.ch !== 0) {
-			editor.setCursor({ line: cursor.line, ch: 0 });  // Move the cursor to the beginning of the current line
-			editor.replaceRange("\n", { line: cursor.line, ch: 0 });  // Break the line at the cursor position
-			cursor = { line: cursor.line, ch: 0 };  // Move the cursor to the previous line of cursor.line
-			editor.setCursor(cursor);
-		}
-		const textToInsert = "# [[]]";
-		editor.replaceRange(textToInsert, cursor);
-		editor.setCursor({ line: cursor.line, ch: cursor.ch + 4 });
-	}
-
-	async updateNoteProperty(
-		property: string,
-		value: string,
-		verbose = true,
-		file?: TFile
-	): Promise<void> {
-		const targetFile = file || this.app.workspace.getActiveFile();
-		if (!targetFile) {
-			new Notice("No active file found.");
-			return;
-		}
-		const valueBool = value === "true" || value === "false";
-		const valueInput = valueBool
-			? value === "true"
-				? true
-				: false
-			: value;
-
-		await this.frontMatterManager.updateProperty(
-			targetFile,
-			(frontmatter) => {
-				frontmatter[property] = valueInput;
-				return frontmatter;
-			}
-		);
-		if (verbose) {
-			new Notice(`Updated ${property} to ${value}`);
-		}
-	}
-
-	async toggleStatus(): Promise<void> {
-		const activeFile = this.app.workspace.getActiveFile();
-		if (!activeFile) {
-			new Notice("No active file found.");
-			return;
-		}
-
-		const currentStatus = await this.frontMatterManager.getProperty(activeFile, "status");
-		let newStatus = "doing";
-		if (currentStatus === "todo") {
-			newStatus = "done";
-		} else if (currentStatus === "done") {
-			newStatus = "todo";
-		}
-
-		await this.updateNoteProperty("status", newStatus);
-
-		if (newStatus === "todo") {
-			await this.propagateStatusToAncestors(activeFile, "todo");
-		} else if (newStatus === "done") {
-			await this.propagateStatusToAncestors(activeFile, "done");
-		}
-	}
-
-	async propagateStatusToAncestors(file: TFile, status: string): Promise<void> {
-		const parent = await this.calculator.getParentFile(file);
-		if (parent) {
-			if (status === "todo") {
-				await this.updateNoteProperty("status", "todo", false, parent);
-				await this.propagateStatusToAncestors(parent, "todo");
-			} else if (status === "done") {
-				const childFiles = await this.calculator.getChildFiles(parent);
-				const allChildrenDone = await Promise.all(
-					childFiles.map(async (child) => {
-						const childStatus = await this.frontMatterManager.getProperty(child, "status");
-						return childStatus === "done";
-					})
-				);
-				if (allChildrenDone.every((done) => done)) {
-					await this.updateNoteProperty("status", "done", false, parent);
-					await this.propagateStatusToAncestors(parent, "done");
-				}
-			}
-		}
-	}
-
-	async propagatePriorityToDescendants(file: TFile, priority: string): Promise<void> {
-		const childFiles = await this.calculator.getChildFiles(file);
-		for (const child of childFiles) {
-			await this.updateNoteProperty("priority", priority, false, child);
-			await this.propagatePriorityToDescendants(child, priority);
-		}
-	}
-
-	async openDoingNote(): Promise<void> {
-		const rootPath = this.settings.rootNotePath;
-		if (!rootPath) {
-			new Notice(
-				"Root note path is not configured in Time Tree settings."
-			);
-			return;
-		}
-
-		const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
-		if (!rootFile || !(rootFile instanceof TFile)) {
-			new Notice(`Root note ${rootPath} not found.`);
-			return;
-		}
-
-		const doingNote = await this.frontMatterManager.findDoingNote(
-			rootFile
-		);
-		if (doingNote) {
-			this.app.workspace.getLeaf().openFile(doingNote);
-		} else {
-			new Notice("No running tracker found.");
-		}
-	}
-
 	scheduleComputeTimeTree(): void {
 		// Clear any existing interval
 		if (this.computeIntervalHandle) {
@@ -401,7 +206,7 @@ export default class TimeTreePlugin extends Plugin {
 		if (this.settings.computeIntervalMinutes > 0) {
 			const intervalMs = this.settings.computeIntervalMinutes * 60 * 1000;
 			this.computeIntervalHandle = setInterval(async () => {
-				await this.computeTimeTree();
+				await this.commandHandler.computeTimeTree();
 			}, intervalMs);
 		}
 	}
