@@ -2,7 +2,7 @@
   "items": [
     {
       "type": "graph",
-      "ctime": 1741756607222,
+      "ctime": 1742420082995,
       "title": "Graph",
       "options": {
         "collapse-filter": true,
@@ -11,8 +11,23 @@
         "showAttachments": false,
         "hideUnresolved": false,
         "showOrphans": true,
-        "collapse-color-groups": true,
-        "colorGroups": [],
+        "collapse-color-groups": false,
+        "colorGroups": [
+          {
+            "query": "[\"status\":todo]",
+            "color": {
+              "a": 1,
+              "rgb": 14701138
+            }
+          },
+          {
+            "query": "[\"status\":done]",
+            "color": {
+              "a": 1,
+              "rgb": 5431378
+            }
+          }
+        ],
         "collapse-display": true,
         "showArrow": false,
         "textFadeMultiplier": 0,
@@ -24,7 +39,7 @@
         "linkStrength": 1,
         "linkDistance": 30,
         "scale": 0.7132754626224425,
-        "close": false
+        "close": true
       }
     }
   ]

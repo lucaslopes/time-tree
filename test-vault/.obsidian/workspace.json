@@ -4,25 +4,59 @@
     "type": "split",
     "children": [
       {
-        "id": "fc8e044642d6de25",
+        "id": "ce4d427c96f51638",
         "type": "tabs",
         "children": [
           {
-            "id": "1e02cc558bcf0724",
+            "id": "3b5b3f3c0df1a795",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Tasks/sub/test-note.md",
+                "file": "Tasks/root.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "test-note"
+              "title": "root"
             }
           },
           {
-            "id": "d757518b949883c7",
+            "id": "5c2c597c3c7c752f",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          },
+          {
+            "id": "fe378a34009f18b9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Tasks/level-1-c.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "level-1-c"
+            }
+          },
+          {
+            "id": "79363c9e075a8505",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -34,9 +68,23 @@
               "icon": "lucide-file",
               "title": "new-btn"
             }
+          },
+          {
+            "id": "d59915f7ee836058",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Tasks/level-2b-b.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "level-2b-b"
+            }
           }
         ],
-        "stacked": true
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -89,12 +137,12 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "964557873665fa61",
@@ -110,6 +158,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "Tasks/sub/test-note.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +168,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for test-note"
             }
           },
           {
@@ -165,6 +214,22 @@
             }
           }
         ]
+      },
+      {
+        "id": "0ff545f3d792b945",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2381ca8d3cc9075a",
+            "type": "leaf",
+            "state": {
+              "type": "full-calendar-view",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Plugin no longer active"
+            }
+          }
+        ]
       }
     ],
     "direction": "horizontal",
@@ -181,26 +246,28 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "1e02cc558bcf0724",
+  "active": "79363c9e075a8505",
   "lastOpenFiles": [
+    "Tasks/level-2b-b.md",
     "new-btn.md",
+    "Tasks/level-1-c.md",
+    "testing.md",
+    "Tasks/root.md",
+    "Tasks/level-2c-a.md",
+    "Tasks/level-2c-c.md",
+    "Tasks/level-2c-b.md",
+    "ref.md",
     "Tasks/sub/test-note.md",
+    "Events",
     "Tasks/level-2b-c.md",
     "Untitled.md",
     "Tasks/level-2a-a.md",
     "Tasks/sub/newer-task.md",
-    "Tasks/root.md",
-    "Tasks/level-2c-a.md",
-    "Tasks/level-2b-b.md",
-    "Tasks/level-2c-b.md",
     "Tasks/level-1-b.md",
-    "Tasks/level-1-c.md",
     "Tasks/level-2a-b.md",
     "Tasks/level-2a-c.md",
     "Tasks/level-1-a.md",
     "Tasks/level-2b-a.md",
-    "ref.md",
-    "Tasks/level-2c-c.md",
     "Root/sub",
     "Root",
     "level-1-b-1.md",

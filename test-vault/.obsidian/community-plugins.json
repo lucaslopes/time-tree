@@ -1,5 +1,6 @@
 [
   "custom-node-size",
   "simple-time-tracker",
-  "time-tree"
+  "time-tree",
+  "persistent-graph"
 ]

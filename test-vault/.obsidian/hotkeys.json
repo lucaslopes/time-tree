@@ -76,5 +76,13 @@
       ],
       "key": "1"
     }
+  ],
+  "time-tree:toggle-status": [
+    {
+      "modifiers": [
+        "Alt"
+      ],
+      "key": "1"
+    }
   ]
 }
