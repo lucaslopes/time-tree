@@ -141,9 +141,7 @@ export default class TimeTreePlugin extends Plugin {
 						) as HTMLButtonElement | null;
 						if (btn) {
 							btn.addEventListener("click", async () => {
-								const btnStatus =
-									btn.getAttribute("aria-label");
-								await this.commandHandler.handleTrackerButtonClick(btnStatus === "End");
+								await this.commandHandler.handleTrackerButtonClick(btn);
 							});
 						}
 					}

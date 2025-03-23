@@ -45,16 +45,36 @@ export class TimeTreeHandler {
 		}
 	}
 
-	async handleTrackerButtonClick(isEnd: boolean): Promise<void> {
-        const delay = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-        let status = "doing";
-		if (isEnd) {
-            await this.elapsedTime();
-			status = "done";
+	async handleTrackerButtonClick(btn: HTMLButtonElement): Promise<void> {
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!activeView || !activeView.containerEl.contains(btn)) {
+			return;
 		}
-		await delay(100);
-		await this.updateNoteProperty("status", status, false);
+		const activeFile = this.app.workspace.getActiveFile();
+		const btnStatus = btn.getAttribute("aria-label");
+		const isEnd = btnStatus === "End";
+		const runningValue = activeFile && !isEnd ? `[[${activeFile.basename}]]` : "";
+        let status = "doing";
+        if (isEnd) {
+			await this.elapsedTime();
+            status = "done";
+        }
+		const delay = (ms: number) =>
+			new Promise((resolve) => setTimeout(resolve, ms));
+        await delay(100);
+        await this.updateNoteProperty("status", status, false);
+        
+        const rootPath = this.settings.rootNotePath;
+        if (rootPath) {
+            const rootFile = this.app.vault.getAbstractFileByPath(rootPath);
+            if (rootFile && rootFile instanceof TFile) {
+                await this.updateNoteProperty("running", runningValue, false, rootFile);
+            } else {
+                new Notice(`Root note ${rootPath} not found.`);
+            }
+        } else {
+            new Notice("Root note path is not configured in settings.");
+        }
     }
 
 	async elapsedTime(): Promise<void> {
