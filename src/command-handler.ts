@@ -49,99 +49,158 @@ export class TimeTreeHandler {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView || !activeView.containerEl.contains(btn)) {
 			return;
-		}
+			}
+		
 		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) return;
+		
 		const btnStatus = btn.getAttribute("aria-label");
 		const isEnd = btnStatus === "End";
-		const runningValue = activeFile && !isEnd ? `[[${activeFile.basename}]]` : "";
-        let status = "doing";
-        if (isEnd) {
+		
+		// Handle status updates and elapsed time
+		await this.handleTrackerStatusChange(isEnd);
+		
+		// Process root file updates
+		const rootFile = await this.getRootFile();
+		if (!rootFile) return;
+		
+		// Update tracker entries in the root file
+		const runningValue = !isEnd ? `[[${activeFile.basename}]]` : "";
+		await this.updateNoteProperty("running", runningValue, false, rootFile);
+		
+		// Update tracker blocks in the root file
+		const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(activeFile) as string;
+		const status = isEnd ? "todo" : "doing";
+		await this.updateTrackerBlocks(rootFile, lastTrackerTime, status);
+	}
+	
+	private async handleTrackerStatusChange(isEnd: boolean): Promise<void> {
+		let status = "doing";
+		if (isEnd) {
 			await this.elapsedTime();
-            status = "todo";
-        }
-		const delay = (ms: number) =>
-			new Promise((resolve) => setTimeout(resolve, ms));
-        await delay(100);
-        await this.updateNoteProperty("status", status, false);
-        
-		let rootFileContent = "";
-		let rootFile: TFile | null = null;
-        const rootPath = this.settings.rootNotePath;
-        if (rootPath) {
-            rootFile = this.app.vault.getAbstractFileByPath(rootPath) as TFile;
-            if (rootFile && rootFile instanceof TFile) {
-                await this.updateNoteProperty("running", runningValue, false, rootFile);
-				rootFileContent = await this.app.vault.read(rootFile);
-            } else {
-                new Notice(`Root note ${rootPath} not found.`);
-            }
-        } else {
-            new Notice("Root note path is not configured in settings.");
-        }
-
-		if (activeFile) {
-			const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(activeFile);
-			let updatedContent = rootFileContent;
-			const entry = { "name": "[[]]", "startTime": `${lastTrackerTime}`, "endTime": null };
+			status = "todo";
+		}
+		const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+		await delay(100);
+		await this.updateNoteProperty("status", status, false);
+	}
+	
+	private async getRootFile(): Promise<TFile | null> {
+		const rootPath = this.settings.rootNotePath;
+		if (!rootPath) {
+			new Notice("Root note path is not configured in settings.");
+			return null;
+		}
 		
-			const trackerBlockRegex = /(```simple-time-tracker\s*\n?)([\s\S]*?)(\n```)/;
-			const trackerBlockMatch = rootFileContent.match(trackerBlockRegex);
+		const rootFile = this.app.vault.getAbstractFileByPath(rootPath) as TFile;
+		if (!(rootFile instanceof TFile)) {
+			new Notice(`Root note ${rootPath} not found.`);
+			return null;
+		}
 		
-			if (trackerBlockMatch) {
-				// Case 2: simple-time-tracker block exists
-				const [_, p1, p2, p3] = trackerBlockMatch;
+		return rootFile;
+	}
+	
+	private async updateTrackerBlocks(rootFile: TFile, lastTrackerTime: string, status: string): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) return;
 		
-				let newContent;
-				if (p2.trim()) {
-					if (status == "doing") {  // When active file starts doing and buffer needs to be stopped
-						updatedContent = rootFileContent.replace(
-							/("endTime":\s*)null(}]})/g,  // Match the specific pattern
-							`"endTime":"${lastTrackerTime}"$2`
-						);
-					} else {
-						// Case 3: simple-time-tracker block has entries
-						const entriesRegex = /"entries":\[(.*?)\]\}/s;
-						const entriesMatch = p2.match(entriesRegex);
-						if (entriesMatch) {
-							const entriesString = entriesMatch[1];
-							newContent = p2.replace(entriesString, `${entriesString},${JSON.stringify(entry)}`);
-						} else {
-							// TODO: what's this case?
-							newContent = p2.replace(/]}/, `,${JSON.stringify(entry)}]}`);
-						}
-					}
-				} else {
-					// Case 2: simple-time-tracker block is empty
-					newContent = `{"entries":[${JSON.stringify(entry)}]}`;
-				}
-				updatedContent = (status == "doing") ? updatedContent : rootFileContent.replace(trackerBlockRegex, `${p1}\n${newContent}${p3}`);
+		const rootFileContent = await this.app.vault.read(rootFile);
+		const entry = { "name": "[[]]", "startTime": `${lastTrackerTime}`, "endTime": null };
+		let updatedContent = rootFileContent;
+		
+		const trackerBlockRegex = /(```simple-time-tracker\s*\n?)([\s\S]*?)(\n```)/;
+		const trackerBlockMatch = rootFileContent.match(trackerBlockRegex);
+		
+		if (trackerBlockMatch) {
+			updatedContent = await this.updateExistingTrackerBlock(
+				rootFileContent, 
+				trackerBlockRegex,
+				trackerBlockMatch, 
+				entry, 
+				status, 
+				lastTrackerTime
+			);
+		} else {
+			updatedContent = await this.createNewTrackerBlock(
+				rootFileContent, 
+				entry, 
+				status
+			);
+		}
+		
+		if (updatedContent !== rootFileContent) {
+			await this.app.vault.modify(rootFile, updatedContent);
+		}
+	}
+	
+	private async updateExistingTrackerBlock(
+		rootFileContent: string, 
+		trackerBlockRegex: RegExp,
+		trackerBlockMatch: RegExpMatchArray,
+		entry: any, 
+		status: string, 
+		lastTrackerTime: string
+	): Promise<string> {
+		const [, p1, p2, p3] = trackerBlockMatch;
+		let updatedContent = rootFileContent;
+		
+		if (p2.trim()) {
+			if (status === "doing") {  // When active file starts doing and buffer needs to be stopped
+				updatedContent = rootFileContent.replace(
+					/("endTime":\s*)null(}]})/g,
+					`"endTime":"${lastTrackerTime}"$2`
+				);
 			} else {
-				// Case 1: simple-time-tracker block does not exist
-				const yamlEnd = this.frontMatterManager.getYamlEnd(rootFileContent.split("\n"));
-				const beforeTrackerBlock = rootFileContent.slice(0, yamlEnd);
-				const afterTrackerBlock = rootFileContent.slice(yamlEnd);
-				let trackerBlock = `\n\`\`\`simple-time-tracker\n\`\`\`\n`;
-				if (status != "doing") {
-					trackerBlock = `\n\`\`\`simple-time-tracker\n{"entries":[${JSON.stringify(entry)}]}\n\`\`\`\n`;
-				}
-				// Insert the trackerBlock two lines after the second `---` (the closing yaml metadata)
-				const lines = rootFileContent.split("\n");
-				const secondYamlEndIndex = lines.findIndex((line, index) => line.trim() === "---" && index > 0);
-				if (secondYamlEndIndex !== -1) {
-					lines.splice(secondYamlEndIndex + 2, 0, trackerBlock.trim());
-					updatedContent = lines.join("\n");
+				// Add entry to existing entries
+				const entriesRegex = /"entries":\[(.*?)\]\}/s;
+				const entriesMatch = p2.match(entriesRegex);
+				if (entriesMatch) {
+					const entriesString = entriesMatch[1];
+					const newContent = p2.replace(entriesString, `${entriesString},${JSON.stringify(entry)}`);
+					updatedContent = rootFileContent.replace(trackerBlockRegex, `${p1}\n${newContent}${p3}`);
 				} else {
-					updatedContent = beforeTrackerBlock + trackerBlock + afterTrackerBlock;
+					// Fallback case
+					const newContent = p2.replace(/]}/, `,${JSON.stringify(entry)}]}`);
+					updatedContent = rootFileContent.replace(trackerBlockRegex, `${p1}\n${newContent}${p3}`);
 				}
 			}
-		
-			if (rootFile && rootFile instanceof TFile && updatedContent !== rootFileContent) {
-				await this.app.vault.modify(rootFile, updatedContent);
-			} else {
-				new Notice("Root file not found or content unchanged.");
+		} else {
+			// Empty tracker block case
+			if (status !== "doing") {
+				const newContent = `{"entries":[${JSON.stringify(entry)}]}`;
+				updatedContent = rootFileContent.replace(trackerBlockRegex, `${p1}\n${newContent}${p3}`);
 			}
 		}
-    }
+		
+		return updatedContent;
+	}
+	
+	private async createNewTrackerBlock(
+		rootFileContent: string, 
+		entry: any, 
+		status: string
+	): Promise<string> {
+		const yamlEnd = this.frontMatterManager.getYamlEnd(rootFileContent.split("\n"));
+		
+		let trackerBlock = `\n\`\`\`simple-time-tracker\n\`\`\`\n`;
+		if (status !== "doing") {
+			trackerBlock = `\n\`\`\`simple-time-tracker\n{"entries":[${JSON.stringify(entry)}]}\n\`\`\`\n`;
+		}
+		
+		// Insert the trackerBlock two lines after the second `---` (the closing yaml metadata)
+		const lines = rootFileContent.split("\n");
+		const secondYamlEndIndex = lines.findIndex((line, index) => line.trim() === "---" && index > 0);
+		
+		if (secondYamlEndIndex !== -1) {
+			lines.splice(secondYamlEndIndex + 2, 0, trackerBlock.trim());
+			return lines.join("\n");
+		} else {
+			const beforeTrackerBlock = rootFileContent.slice(0, yamlEnd);
+			const afterTrackerBlock = rootFileContent.slice(yamlEnd);
+			return beforeTrackerBlock + trackerBlock + afterTrackerBlock;
+		}
+	}
 
 	async elapsedTime(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
