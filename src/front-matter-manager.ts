@@ -137,11 +137,20 @@ export class FrontMatterManager {
 	}
 
 	async findDoingNote(file: TFile): Promise<TFile | null> {
+		const runningNotePath = await this.getProperty(file, "running") as string;
+		if (runningNotePath) {
+			const runningNote = this.app.vault.getAbstractFileByPath(runningNotePath);
+			if (runningNote && runningNote instanceof TFile) {
+				return runningNote;
+			}
+		}
+
 		const doing = await this.getProperty(file, "status");
 		if (doing === 'doing') {
 			return file;
 		}
 
+		// TODO: It's getting all descendant files, which is not efficient, should check one by one
 		const descendants = await gatherDescendantFiles(file, this.app);
 		for (const descendant of descendants) {
 			const doing = await this.getProperty(descendant, "status");
@@ -158,6 +167,9 @@ export class FrontMatterManager {
 		position: number
 	): Promise<object | null> {
 		const fileContent = editor.getValue();
+		
+		// TODO: to known if it's running: "endTime":null}]}```
+		// {"name":"*","startTime":"2025-03-23T18:06:23.907Z","endTime":null}]}
 
 		// Match the simple-time-tracker block
 		const trackerRegex = /```simple-time-tracker\n({.*?})\n```/s;
@@ -189,5 +201,42 @@ export class FrontMatterManager {
 
 		// Parse and return the selected entry
 		return JSON.parse(allEntries[index]);
+	}
+
+	async getLastTrackerTimeRegex(file: TFile,): Promise<string | null> {
+		const content = await this.app.vault.read(file);
+		// Extract the dedicated simple-time-tracker block.
+		// It must begin and end on its own line.
+		const blockRegex = /^```simple-time-tracker\s*\n([\s\S]*?)\n```/m;
+		const blockMatch = content.match(blockRegex);
+		if (!blockMatch) {
+			throw new Error("No dedicated simple-time-tracker block found.");
+		}
+		const blockContent = blockMatch[1];
+
+		// Regex date pattern: e.g. "2025-03-12T02:18:56.038Z"
+		const dateRegex = '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z';
+
+		// Regex for an entry.
+		// Note: This regex assumes that entries always have the form:
+		// {"name":"...","startTime":"<date>","endTime":null} OR
+		// {"name":"...","startTime":"<date>","endTime":"<date>"}
+		const entryRegex = new RegExp(
+			`"name":\\s*"[^"]+",\\s*"startTime":\\s*"(${dateRegex})",\\s*"endTime":\\s*(null|"(${dateRegex})")`,
+			"g"
+		);
+
+		let lastMatch = null;
+		let match;
+		while ((match = entryRegex.exec(blockContent)) !== null) {
+			lastMatch = match;
+		}
+
+		if (!lastMatch) {
+			return null;
+		}
+
+		// If the captured "endTime" group equals "null", return startTime; otherwise, return the date captured in group 3.
+		return lastMatch[2] === 'null' ? lastMatch[1] : lastMatch[3];
 	}
 }
