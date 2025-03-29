@@ -2,6 +2,7 @@ import { App, TFile, Notice, Editor, MarkdownView } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeCalculator } from "./time-tree-calculator";
+import { formatFileLink, replaceSimpleTimeTrackerBlock } from "./utils";
 
 export class TimeTreeHandler {
 	private app: App;
@@ -47,31 +48,31 @@ export class TimeTreeHandler {
 
 	async handleTrackerButtonClick(btn: HTMLButtonElement): Promise<void> {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!activeView || !activeView.containerEl.contains(btn)) {
-			return;
-			}
-		
 		const activeFile = this.app.workspace.getActiveFile();
-		if (!activeFile) return;
+		if (!activeView || !activeView.containerEl.contains(btn) || !activeFile) {
+			return;
+		}
 		
 		const btnStatus = btn.getAttribute("aria-label");
 		const isEnd = btnStatus === "End";
-		
-		// Handle status updates and elapsed time
 		await this.handleTrackerStatusChange(isEnd);
 		
 		// Process root file updates
-		const rootFile = await this.getRootFile();
+		const rootFile = await this.getRootFile() as TFile;
 		if (!rootFile) return;
+		const runningNote = await this.frontMatterManager.findDoingNote(rootFile) as TFile;
 		
-		// Update tracker entries in the root file
-		const runningValue = !isEnd ? `[[${activeFile.basename}]]` : "";
+		// Update tracker entries in the running note
+		const runningValue = !isEnd ? formatFileLink(activeFile) : formatFileLink(rootFile);
 		await this.updateNoteProperty("running", runningValue, false, rootFile);
 		
-		// Update tracker blocks in the root file
+		// Update tracker blocks in the running note
 		const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(activeFile) as string;
+		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime)
 		const status = isEnd ? "todo" : "doing";
-		await this.updateTrackerBlocks(rootFile, lastTrackerTime, status);
+		if (runningNote != rootFile && runningNote != activeFile) {
+			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status);
+		}
 	}
 	
 	private async handleTrackerStatusChange(isEnd: boolean): Promise<void> {

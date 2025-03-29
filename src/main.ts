@@ -1,8 +1,9 @@
-import { Plugin } from "obsidian";
+import { Plugin, TFile } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeHandler } from "./command-handler";
+import { replaceSimpleTimeTrackerBlock } from "./utils";
 
 export default class TimeTreePlugin extends Plugin {
 	public api = (this.app as any).plugins.plugins["simple-time-tracker"].api;
@@ -23,6 +24,17 @@ export default class TimeTreePlugin extends Plugin {
 		);
 
 		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
+
+		this.registerEvent(  // Register event to listen for file creation
+			this.app.vault.on("create", (file: TFile) => {
+				const targetFolder = this.settings.targetFolderPath;
+				if (file.path.startsWith(`${targetFolder}/`)) {
+					if (file.extension === "md") {
+						replaceSimpleTimeTrackerBlock(this.app, this.settings.rootNotePath);
+					}
+				}
+			})
+		);
 
 		this.addCommand({
 			id: "start-stop",

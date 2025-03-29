@@ -1,40 +1,7 @@
 import { App, TFile } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
-
-export async function gatherDescendantFiles(
-	file: TFile,
-	app: App,
-	visited: Set<string> = new Set()
-): Promise<TFile[]> {
-	const files: TFile[] = [];
-	if (visited.has(file.path)) {
-		return files;
-	}
-	visited.add(file.path);
-	const fileCache = app.metadataCache.getFileCache(file);
-	if (fileCache && fileCache.links && fileCache.links.length > 0) {
-		const ignoredLinks = fileCache.frontmatter?.running || [];
-		console.log("gatherDescendantFiles", ignoredLinks);
-		for (const link of fileCache.links) {
-			if (ignoredLinks.includes(link.link)) continue;
-			const childFile = app.metadataCache.getFirstLinkpathDest(
-				link.link,
-				file.path
-			);
-			if (childFile && (!this.settings.RootFolderPath || childFile.path.startsWith(this.settings.RootFolderPath))) {
-				files.push(childFile);
-				const descendants = await gatherDescendantFiles(
-					childFile,
-					app,
-					visited
-				);
-				files.push(...descendants);
-			}
-		}
-	}
-	return files;
-}
+import { gatherDescendantFiles } from "./utils";
 
 export class TimeTreeCalculator {
 	private app: App;
@@ -159,23 +126,25 @@ export class TimeTreeCalculator {
 	}
 
 	async getParentFile(file: TFile): Promise<TFile | undefined> {
+		const candidateFiles: TFile[] = [];
 		const backlinks = (this.app.metadataCache as any).getBacklinksForFile(
 			file
 		);
-		const candidateFiles: TFile[] = [];
-		for (const source of backlinks["data"]) {
-			const parentFile = this.app.vault.getAbstractFileByPath(source[0]);
-			if (parentFile instanceof TFile) {
-				if (this.settings.RootFolderPath) {
-					if (
-						!parentFile.path.startsWith(
-							this.settings.RootFolderPath
-						)
-					) {
-						continue;
+		if (backlinks && backlinks["data"].length > 0) {
+			for (const source of backlinks["data"]) {
+				const parentFile = this.app.vault.getAbstractFileByPath(source[0]);
+				if (parentFile instanceof TFile) {
+					if (this.settings.RootFolderPath) {
+						if (
+							!parentFile.path.startsWith(
+								this.settings.RootFolderPath
+							)
+						) {
+							continue;
+						}
 					}
+					candidateFiles.push(parentFile);
 				}
-				candidateFiles.push(parentFile);
 			}
 		}
 		if (candidateFiles.length === 0) {

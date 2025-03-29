@@ -1,5 +1,5 @@
 import { TFile, Notice, App, Editor } from "obsidian";
-import { gatherDescendantFiles } from "./time-tree-calculator";
+import { gatherDescendantFiles } from "./utils";
 import * as YAML from "yaml";
 
 export class FrontMatterManager {
@@ -137,14 +137,18 @@ export class FrontMatterManager {
 	}
 
 	async findDoingNote(file: TFile): Promise<TFile | null> {
-		const runningNotePath = await this.getProperty(file, "running") as string;
+		let runningNotePath = await this.getProperty(file, "running") as string;
+		runningNotePath = runningNotePath?.replace(/^\[\[|\]\]$/g, "").split("|")[0];
 		if (runningNotePath) {
 			const runningNote = this.app.vault.getAbstractFileByPath(runningNotePath);
 			if (runningNote && runningNote instanceof TFile) {
 				return runningNote;
 			}
 		}
+		return this.deepFindDoingNote(file);  // TODO: is necessary?
+	}
 
+	async deepFindDoingNote(file: TFile): Promise<TFile | null> {
 		const doing = await this.getProperty(file, "status");
 		if (doing === 'doing') {
 			return file;

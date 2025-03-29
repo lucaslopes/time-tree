@@ -1,6 +1,7 @@
-import { App, PluginSettingTab, Setting, TFolder } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import TimeTreePlugin from "./main";
 import { TimeTreeSettings } from "./settings";
+import { createPathSetting } from "./utils";
 
 export class TimeTreeSettingsTab extends PluginSettingTab {
 	plugin: TimeTreePlugin;
@@ -18,73 +19,42 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 			text: "Time Tree Settings",
 		});
 
-		new Setting(this.containerEl)
-			.setName("Root Note Path")
-			.setDesc(
-				"The path of the root note from which the commands will be executed."
-			)
-			.addText((text) => {
-				text.setPlaceholder("Enter root note path")
-					.setValue(this.settings.rootNotePath)
-					.onChange(async (value) => {
-						this.settings.rootNotePath = value;
-						await this.plugin.saveSettings();
-					});
+		createPathSetting(
+			this.app,
+			this.containerEl,
+			"Root Note Path",
+			"The path of the root note from which the commands will be executed.",
+			this.settings.rootNotePath,
+			async (value) => {
+				this.settings.rootNotePath = value;
+				await this.plugin.saveSettings();
+			},
+			true // Indicate that this is a file path
+		);
 
-				// Create a datalist element for file suggestions
-				const dataList = this.containerEl.createEl("datalist", {
-					attr: { id: "file-datalist" },
-				});
-				const files = this.app.vault.getFiles();
-				files.forEach((file) => {
-					dataList.createEl("option", { attr: { value: file.path } });
-				});
-				text.inputEl.setAttr("list", "file-datalist");
-			});
+		createPathSetting(
+			this.app,
+			this.containerEl,
+			"Root Folder Path",
+			"The folder path where notes must reside to be considered during the tree-traversal over child notes linked.",
+			this.settings.RootFolderPath,
+			async (value) => {
+				this.settings.RootFolderPath = value;
+				await this.plugin.saveSettings();
+			}
+		);
 
-		new Setting(this.containerEl)
-			.setName("Root Folder Path")
-			.setDesc(
-				"The folder path where notes must reside to be considered during the tree-traversal over child notes linked."
-			)
-			.addText((text) => {
-				text.setPlaceholder("Enter folder path")
-					.setValue(this.settings.RootFolderPath)
-					.onChange(async (value) => {
-						this.settings.RootFolderPath = value;
-						await this.plugin.saveSettings();
-					});
-
-				// Create a datalist element for folder suggestions using all folders from the vault recursively
-				const folderDataList = this.containerEl.createEl("datalist", {
-					attr: { id: "folder-datalist" },
-				});
-				const rootFolder = this.app.vault.getRoot();
-				const allFolders: TFolder[] = [];
-
-				function traverse(folder: TFolder) {
-					allFolders.push(folder);
-					if (folder.children) {
-						folder.children.forEach((child) => {
-							if (child instanceof TFolder) {
-								traverse(child);
-							}
-						});
-					}
-				}
-
-				traverse(rootFolder);
-
-				Array.from(allFolders.map((f) => f.path))
-					.sort()
-					.forEach((folderPath) => {
-						folderDataList.createEl("option", {
-							attr: { value: folderPath },
-						});
-					});
-
-				text.inputEl.setAttr("list", "folder-datalist");
-			});
+		createPathSetting(
+			this.app,
+			this.containerEl,
+			"Target Folder Path",
+			"The folder path where new file creation events will be listened for.",
+			this.settings.targetFolderPath,
+			async (value) => {
+				this.settings.targetFolderPath = value;
+				await this.plugin.saveSettings();
+			}
+		);
 
 		new Setting(this.containerEl)
 			.setName("Compute Interval")
