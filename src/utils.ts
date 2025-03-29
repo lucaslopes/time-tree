@@ -17,7 +17,6 @@ export async function gatherDescendantFiles(
     const fileCache = app.metadataCache.getFileCache(file);
     if (fileCache && fileCache.links && fileCache.links.length > 0) {
         const ignoredLinks = fileCache.frontmatter?.running || [];
-        console.log("gatherDescendantFiles", ignoredLinks);
         for (const link of fileCache.links) {
             if (ignoredLinks.includes(link.link)) continue;
             const childFile = app.metadataCache.getFirstLinkpathDest(

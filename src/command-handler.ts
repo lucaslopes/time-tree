@@ -68,10 +68,13 @@ export class TimeTreeHandler {
 		
 		// Update tracker blocks in the running note
 		const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(activeFile) as string;
+		const status = (isEnd: boolean) => isEnd ? "todo" : "doing";
+		if (activeFile === rootFile && runningNote != rootFile) {
+			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(!isEnd));
+		}
 		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime)
-		const status = isEnd ? "todo" : "doing";
-		if (runningNote != rootFile && runningNote != activeFile) {
-			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status);
+		if (runningNote != rootFile && runningNote != activeFile && activeFile != rootFile) {
+			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(isEnd));
 		}
 	}
 	

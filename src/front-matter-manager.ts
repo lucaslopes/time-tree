@@ -137,8 +137,10 @@ export class FrontMatterManager {
 	}
 
 	async findDoingNote(file: TFile): Promise<TFile | null> {
-		let runningNotePath = await this.getProperty(file, "running") as string;
-		runningNotePath = runningNotePath?.replace(/^\[\[|\]\]$/g, "").split("|")[0];
+		let runningNotePath: string | null = await this.getProperty(file, "running") as string | null;
+		runningNotePath = typeof runningNotePath === "string" 
+			? runningNotePath.replace(/^\[\[|\]\]$/g, "").split("|")[0] 
+			: null;
 		if (runningNotePath) {
 			const runningNote = this.app.vault.getAbstractFileByPath(runningNotePath);
 			if (runningNote && runningNote instanceof TFile) {
