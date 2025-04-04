@@ -41,14 +41,13 @@ export class TimeTreeCalculator {
 		const fileCache = this.app.metadataCache.getFileCache(file);
 		if (fileCache && fileCache.links && fileCache.links.length > 0) {
 			const ignoredLinks = fileCache.frontmatter?.running || [];
-			console.log("calculateRecursiveElapsedTime", ignoredLinks);
 			for (const link of fileCache.links) {
 				if (ignoredLinks.includes(link.link)) continue;
 				const childFile = this.app.metadataCache.getFirstLinkpathDest(
 					link.link,
 					file.path
 				);
-				if (childFile && (!this.settings.RootFolderPath || childFile.path.startsWith(this.settings.RootFolderPath))) {
+				if (childFile && (!this.settings.TreeFolderPath || childFile.path.startsWith(this.settings.TreeFolderPath))) {
 					await this.calculateRecursiveElapsedTime(childFile);
 				}
 			}
@@ -80,14 +79,13 @@ export class TimeTreeCalculator {
 		}
 		let totalDescendantElapsed = 0;
 		const ignoredLinks = fileCache.frontmatter?.running || [];
-		console.log("calculateRecursiveElapsedChild", ignoredLinks);
 		for (const link of childNotes) {
 			if (ignoredLinks.includes(link.link)) continue;
 			const childFile = this.app.metadataCache.getFirstLinkpathDest(
 				link.link,
 				file.path
 			);
-			if (childFile && (!this.settings.RootFolderPath || childFile.path.startsWith(this.settings.RootFolderPath))) {
+			if (childFile && (!this.settings.TreeFolderPath || childFile.path.startsWith(this.settings.TreeFolderPath))) {
 				let childTotal = 0;
 				if (recursive) {
 					childTotal = await this.calculateRecursiveElapsedChild(
@@ -134,10 +132,10 @@ export class TimeTreeCalculator {
 			for (const source of backlinks["data"]) {
 				const parentFile = this.app.vault.getAbstractFileByPath(source[0]);
 				if (parentFile instanceof TFile) {
-					if (this.settings.RootFolderPath) {
+					if (this.settings.TreeFolderPath) {
 						if (
 							!parentFile.path.startsWith(
-								this.settings.RootFolderPath
+								this.settings.TreeFolderPath
 							)
 						) {
 							continue;
@@ -209,11 +207,10 @@ export class TimeTreeCalculator {
 		const childFiles: TFile[] = [];
 		if (fileCache && fileCache.links && fileCache.links.length > 0) {
 			const ignoredLinks = fileCache.frontmatter?.running || [];
-			console.log("getChildFiles", ignoredLinks);
 			for (const link of fileCache.links) {
 				if (ignoredLinks.includes(link.link)) continue;
 				const childFile = this.app.metadataCache.getFirstLinkpathDest(link.link, file.path);
-				if (childFile && (!this.settings.RootFolderPath || childFile.path.startsWith(this.settings.RootFolderPath))) {
+				if (childFile && (!this.settings.TreeFolderPath || childFile.path.startsWith(this.settings.TreeFolderPath))) {
 					childFiles.push(childFile);
 				}
 			}

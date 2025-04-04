@@ -27,10 +27,13 @@ export default class TimeTreePlugin extends Plugin {
 
 		this.registerEvent(  // Register event to listen for file creation
 			this.app.vault.on("create", (file: TFile) => {
-				const targetFolder = this.settings.targetFolderPath;
+				const targetFolder = this.settings.TimeFolderPath;
 				if (file.path.startsWith(`${targetFolder}/`)) {
 					if (file.extension === "md") {
-						replaceSimpleTimeTrackerBlock(this.app, this.settings.rootNotePath);
+						const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
+						if (rootNote) {
+							replaceSimpleTimeTrackerBlock(this.app, rootNote);
+						}
 					}
 				}
 			})

@@ -14,15 +14,40 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 	}
 
 	display(): void {
+
 		this.containerEl.empty();
 		this.containerEl.createEl("h2", {
 			text: "Time Tree Settings",
 		});
+		
+		createPathSetting(
+			this.app,
+			this.containerEl,
+			"Time Folder",
+			"The folder path where notes must reside to be considered as time entries.",
+			this.settings.TimeFolderPath,
+			async (value) => {
+				this.settings.TimeFolderPath = value;
+				await this.plugin.saveSettings();
+			}
+		);
+		
+		createPathSetting(
+			this.app,
+			this.containerEl,
+			"Tree Folder",
+			"The folder path where notes must reside to be considered as tasks.",
+			this.settings.TreeFolderPath,
+			async (value) => {
+				this.settings.TreeFolderPath = value;
+				await this.plugin.saveSettings();
+			}
+		);
 
 		createPathSetting(
 			this.app,
 			this.containerEl,
-			"Root Note Path",
+			"Root Note",
 			"The path of the root note from which the commands will be executed.",
 			this.settings.rootNotePath,
 			async (value) => {
@@ -31,33 +56,9 @@ export class TimeTreeSettingsTab extends PluginSettingTab {
 			},
 			true // Indicate that this is a file path
 		);
-
-		createPathSetting(
-			this.app,
-			this.containerEl,
-			"Root Folder Path",
-			"The folder path where notes must reside to be considered during the tree-traversal over child notes linked.",
-			this.settings.RootFolderPath,
-			async (value) => {
-				this.settings.RootFolderPath = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
-		createPathSetting(
-			this.app,
-			this.containerEl,
-			"Target Folder Path",
-			"The folder path where new file creation events will be listened for.",
-			this.settings.targetFolderPath,
-			async (value) => {
-				this.settings.targetFolderPath = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
+		
 		new Setting(this.containerEl)
-			.setName("Compute Interval")
+			.setName("Auto Update")
 			.setDesc(
 				"Set the periodic interval to run the 'compute-time-tree' command. Select 'Off' to disable."
 			)
