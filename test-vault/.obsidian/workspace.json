@@ -4,87 +4,22 @@
     "type": "split",
     "children": [
       {
-        "id": "ce4d427c96f51638",
+        "id": "cbc50b7fb7a5ffe6",
         "type": "tabs",
         "children": [
           {
-            "id": "3b5b3f3c0df1a795",
+            "id": "ad30d48aef134075",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "database-plugin",
               "state": {
-                "file": "Tasks/root.md",
-                "mode": "source",
-                "source": false
+                "file": "Time/Time.md"
               },
-              "icon": "lucide-file",
-              "title": "root"
-            }
-          },
-          {
-            "id": "5c2c597c3c7c752f",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          },
-          {
-            "id": "fe378a34009f18b9",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-1-c.md",
-                "mode": "source",
-                "source": false,
-                "backlinks": true,
-                "backlinkOpts": {
-                  "collapseAll": false,
-                  "extraContext": false,
-                  "sortOrder": "alphabetical",
-                  "showSearch": false,
-                  "searchQuery": "",
-                  "backlinkCollapsed": false,
-                  "unlinkedCollapsed": true
-                }
-              },
-              "icon": "lucide-file",
-              "title": "level-1-c"
-            }
-          },
-          {
-            "id": "79363c9e075a8505",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "new-btn.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "new-btn"
-            }
-          },
-          {
-            "id": "d59915f7ee836058",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Tasks/level-2b-b.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "level-2b-b"
+              "icon": "database-folder-icon",
+              "title": "Time"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "vertical"
@@ -137,8 +72,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "horizontal",
@@ -243,35 +177,40 @@
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
-      "command-palette:Open command palette": false
+      "command-palette:Open command palette": false,
+      "dbfolder:Create a new database table": false
     }
   },
-  "active": "79363c9e075a8505",
+  "active": "ad30d48aef134075",
   "lastOpenFiles": [
-    "Tasks/level-2b-b.md",
+    "Tree/root.md",
+    "Time/2025-03-30 17_19_52.md",
+    "Time/2025-03-30 18_22_28.md",
+    "Time/Time.md",
+    "Time/2025-03-29 13_50_39.md",
+    "Time/2025-03-30 18_20_02.md",
+    "Time/2025-03-30 18_18_21.md",
+    "Time/2025-03-30 17_30_24.md",
+    "Time/2025-03-30 17_19_48.md",
+    "Time/2025-03-29 20_26_32.md",
+    "Time/2025-03-29 13_42_27.md",
+    "Time/2025-03-29 13_46_19.md",
+    "Tree/2025-03-29 03_07_12.md",
     "new-btn.md",
-    "Tasks/level-1-c.md",
+    "Tree/level-2b-b.md",
+    "Tree/level-1-c.md",
     "testing.md",
-    "Tasks/root.md",
-    "Tasks/level-2c-a.md",
-    "Tasks/level-2c-c.md",
-    "Tasks/level-2c-b.md",
+    "Tree/level-2c-a.md",
+    "Tree/level-2c-c.md",
+    "Tree/level-2c-b.md",
     "ref.md",
-    "Tasks/sub/test-note.md",
+    "Tree/sub/test-note.md",
     "Events",
-    "Tasks/level-2b-c.md",
+    "Tree/level-2b-c.md",
     "Untitled.md",
-    "Tasks/level-2a-a.md",
-    "Tasks/sub/newer-task.md",
-    "Tasks/level-1-b.md",
-    "Tasks/level-2a-b.md",
-    "Tasks/level-2a-c.md",
-    "Tasks/level-1-a.md",
-    "Tasks/level-2b-a.md",
+    "Tree/level-2a-a.md",
+    "Tree/sub/newer-task.md",
     "Root/sub",
-    "Root",
-    "level-1-b-1.md",
-    "level-1-c-1.md",
-    "level-1-a-1.md"
+    "Root"
   ]
 }

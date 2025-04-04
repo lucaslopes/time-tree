@@ -2,5 +2,7 @@
   "custom-node-size",
   "simple-time-tracker",
   "time-tree",
-  "persistent-graph"
+  "persistent-graph",
+  "dataview",
+  "dbfolder"
 ]
