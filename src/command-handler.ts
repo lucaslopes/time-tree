@@ -2,7 +2,7 @@ import { App, TFile, Notice, Editor, MarkdownView } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeCalculator } from "./time-tree-calculator";
-import { formatFileLink, replaceSimpleTimeTrackerBlock } from "./utils";
+import { formatFileLink, replaceSimpleTimeTrackerBlock, organizeTimeFolderFiles } from "./utils";
 
 export class TimeTreeHandler {
 	private app: App;
@@ -253,6 +253,7 @@ export class TimeTreeHandler {
 			await this.calculator.calculateRecursiveElapsedTime(rootFile);
 			await this.calculator.calculateRecursiveElapsedChild(rootFile);
 			await this.calculator.updateNodeSizeFromFile(rootFile);
+			await organizeTimeFolderFiles(this.app, this.settings.TimeFolderPath);
 			new Notice(`Time Tree computed from note: ${rootPath}`, 2000);
 		} finally {
 			loadingNotice.hide();

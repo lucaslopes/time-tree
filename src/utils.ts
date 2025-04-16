@@ -1,4 +1,4 @@
-import { App, Setting, TFile, TFolder } from "obsidian";
+import { App, Setting, TFile, TFolder, normalizePath } from "obsidian";
 
 export function formatFileLink(activeFile: TFile): string {
     return `[[${activeFile.path}|${activeFile.basename}]]`;
@@ -37,7 +37,19 @@ export async function gatherDescendantFiles(
     return files;
 }
 
-export async function replaceSimpleTimeTrackerBlock(app: App, rootNote: TFile, name = "", startTime = "2025-03-29T04:10:12.871Z"): Promise<void> {
+export function formatDateToISO(date: Date): string {
+    const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+    return `${utcDate.getFullYear()}-${(utcDate.getMonth() + 1).toString().padStart(2, "0")}-${utcDate.getDate().toString().padStart(2, "0")}T${utcDate.getHours().toString().padStart(2, "0")}:${utcDate.getMinutes().toString().padStart(2, "0")}:${utcDate.getSeconds().toString().padStart(2, "0")}.${utcDate.getMilliseconds().toString().padStart(3, "0")}Z`;
+}
+
+export async function replaceSimpleTimeTrackerBlock(app: App, rootNote: TFile, name = "", startTime = ""): Promise<void> {
+	// TODO: This function may be called multiple times when plugin is reloaded.
+	// We only need the most recent file created in the folder.
+	if (startTime === "") {
+		startTime = formatDateToISO(new Date());
+    }
+	console.log("replaceSimpleTimeTrackerBlock", rootNote.path, name, startTime);
+
     name = name ? name : formatFileLink(rootNote);
     if (rootNote && rootNote instanceof TFile) {
         const fileContent = await app.vault.read(rootNote);
@@ -107,4 +119,41 @@ export function createPathSetting(
 
             text.inputEl.setAttr("list", `${name.toLowerCase().replace(/ /g, "-")}-datalist`);
         });
+}
+
+export async function organizeTimeFolderFiles(app: App, timeFolderPath: string): Promise<void> {
+    const timeFolder = app.vault.getAbstractFileByPath(normalizePath(timeFolderPath));
+
+    if (!(timeFolder instanceof TFolder)) {
+        console.error(`The path ${timeFolderPath} is not a folder.`);
+        return;
+    }
+
+    const files = app.vault.getFiles().filter(file => file.path.startsWith(timeFolderPath));
+
+    for (const file of files) {
+        const match = file.name.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (!match) {
+            // console.warn(`File ${file.path} does not have a valid date format in its name.`);
+            continue;
+        }
+
+        const [_, year, month, day] = match;
+        const correctFolderPath = `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}`;
+        const correctFilePath = `${correctFolderPath}/${file.name}`;
+
+        if (file.path === correctFilePath) {
+            // File is already in the correct folder
+            continue;
+        }
+
+        // Ensure the correct folder structure exists
+        let folder = app.vault.getAbstractFileByPath(normalizePath(correctFolderPath));
+        if (!folder) {
+            await app.vault.createFolder(normalizePath(correctFolderPath));
+        }
+
+        // Move the file to the correct folder
+        await app.vault.rename(file, normalizePath(correctFilePath));
+    }
 }

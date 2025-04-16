@@ -1,9 +1,9 @@
-import { Plugin, TFile } from "obsidian";
+import { Plugin, TFile, Stat } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeHandler } from "./command-handler";
-import { replaceSimpleTimeTrackerBlock } from "./utils";
+import { formatDateToISO, replaceSimpleTimeTrackerBlock  } from "./utils";
 
 export default class TimeTreePlugin extends Plugin {
 	public api = (this.app as any).plugins.plugins["simple-time-tracker"].api;
@@ -26,13 +26,15 @@ export default class TimeTreePlugin extends Plugin {
 		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
 
 		this.registerEvent(  // Register event to listen for file creation
-			this.app.vault.on("create", (file: TFile) => {
+			this.app.vault.on("create", async (file: TFile) => {
 				const targetFolder = this.settings.TimeFolderPath;
 				if (file.path.startsWith(`${targetFolder}/`)) {
 					if (file.extension === "md") {
 						const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
 						if (rootNote) {
-							replaceSimpleTimeTrackerBlock(this.app, rootNote);
+							const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
+							const creationDate = fileStat.ctime ? formatDateToISO(new Date(fileStat.ctime)) : formatDateToISO(new Date());
+							replaceSimpleTimeTrackerBlock(this.app, rootNote, "", creationDate);
 						}
 					}
 				}
