@@ -1,8 +1,17 @@
-import { App, TFile, Notice, Editor, MarkdownView } from "obsidian";
+import { App, TFile, Notice, Editor, MarkdownView, Stat } from "obsidian";
 import { TimeTreeSettings } from "./settings";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeCalculator } from "./time-tree-calculator";
-import { formatFileLink, replaceSimpleTimeTrackerBlock, organizeTimeFolderFiles } from "./utils";
+import {
+	formatFileLink,
+	formatISOToString,
+	getCorrectFilePath,
+	replaceSimpleTimeTrackerBlock,
+	organizeTimeFolderFiles,
+	organizeSingleFile,
+	formatDateToISO,
+	delay
+} from "./utils";
 
 export class TimeTreeHandler {
 	private app: App;
@@ -72,7 +81,15 @@ export class TimeTreeHandler {
 		if (activeFile === rootFile && runningNote != rootFile) {
 			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(!isEnd));
 		}
-		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime)
+		const localDate = formatISOToString(lastTrackerTime);
+		const entryFilePath = getCorrectFilePath(this.settings.TimeFolderPath, localDate) + '.md';
+		console.log('new entry', runningValue, localDate, entryFilePath);
+
+		// Create a markdown file at the entryFilePath
+		const newFile = await this.app.vault.create(entryFilePath, `# Entry for ${localDate}\n\n`);
+		console.log('Created new file:', newFile.path);
+
+		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime);
 		if (runningNote != rootFile && runningNote != activeFile && activeFile != rootFile) {
 			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(isEnd));
 		}
@@ -84,7 +101,6 @@ export class TimeTreeHandler {
 			await this.elapsedTime();
 			status = "todo";
 		}
-		const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 		await delay(100);
 		await this.updateNoteProperty("status", status, false);
 	}
@@ -380,6 +396,26 @@ export class TimeTreeHandler {
 			this.app.workspace.getLeaf().openFile(doingNote);
 		} else {
 			new Notice("No running tracker found.");
+		}
+	}
+
+	async handleFileCreation(file: TFile, useModifiedDate = false): Promise<void> {
+		// TODO: need to stop the last running tracker
+		const targetFolder = this.settings.TimeFolderPath;
+		if (file.path.startsWith(`${targetFolder}/`)) {
+			if (file.extension === "md") {
+				const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
+				if (rootNote) {
+					const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
+					const dateToUse = useModifiedDate && fileStat.mtime
+						? formatDateToISO(new Date(fileStat.mtime))
+						: formatDateToISO(new Date(fileStat.ctime));
+					
+					// Rename the file and return the updated file
+					await organizeSingleFile(this.app, targetFolder, file);
+					replaceSimpleTimeTrackerBlock(this.app, rootNote, "", dateToUse);
+				}
+			}
 		}
 	}
 }

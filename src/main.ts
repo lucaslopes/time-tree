@@ -1,9 +1,9 @@
-import { Plugin, TFile, Stat } from "obsidian";
+import { Plugin, TFile } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeHandler } from "./command-handler";
-import { formatDateToISO, replaceSimpleTimeTrackerBlock  } from "./utils";
+import { delay } from "./utils";
 
 export default class TimeTreePlugin extends Plugin {
 	public api = (this.app as any).plugins.plugins["simple-time-tracker"].api;
@@ -12,8 +12,10 @@ export default class TimeTreePlugin extends Plugin {
 	private computeIntervalHandle: any;
 	private buttonObserver: MutationObserver | null = null;
 	private commandHandler: TimeTreeHandler;
-
+	private pluginLoadTime = 0;
+	
 	async onload(): Promise<void> {
+		this.pluginLoadTime = Date.now();
 		await this.loadSettings();
 		this.frontMatterManager = new FrontMatterManager(this.app);
 		this.commandHandler = new TimeTreeHandler(
@@ -22,20 +24,16 @@ export default class TimeTreePlugin extends Plugin {
 			this.settings,
 			this.frontMatterManager
 		);
-
+	
 		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
 
-		this.registerEvent(  // Register event to listen for file creation
+		this.registerEvent(
 			this.app.vault.on("create", async (file: TFile) => {
-				const targetFolder = this.settings.TimeFolderPath;
-				if (file.path.startsWith(`${targetFolder}/`)) {
-					if (file.extension === "md") {
-						const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
-						if (rootNote) {
-							const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
-							const creationDate = fileStat.ctime ? formatDateToISO(new Date(fileStat.ctime)) : formatDateToISO(new Date());
-							replaceSimpleTimeTrackerBlock(this.app, rootNote, "", creationDate);
-						}
+				if (file instanceof TFile && file.stat) {
+					if (file.stat.ctime > this.pluginLoadTime) {
+						await delay(0);
+						console.log("File created:", file.path);
+						await this.commandHandler.handleFileCreation(file);
 					}
 				}
 			})
@@ -149,6 +147,8 @@ export default class TimeTreePlugin extends Plugin {
 			},
 		});
 
+		// TODO: Se clicar no root para pausar/continuar da Error: File already exists.
+		// TODO: ao dar load no app, o root note é atualizado para um novo note qualquer (deve ser o mais recente)
 		this.buttonObserver = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {

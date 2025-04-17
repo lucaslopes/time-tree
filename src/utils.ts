@@ -42,13 +42,17 @@ export function formatDateToISO(date: Date): string {
     return `${utcDate.getFullYear()}-${(utcDate.getMonth() + 1).toString().padStart(2, "0")}-${utcDate.getDate().toString().padStart(2, "0")}T${utcDate.getHours().toString().padStart(2, "0")}:${utcDate.getMinutes().toString().padStart(2, "0")}:${utcDate.getSeconds().toString().padStart(2, "0")}.${utcDate.getMilliseconds().toString().padStart(3, "0")}Z`;
 }
 
+export function formatISOToString(isoString: string): string {
+    const localDate = new Date(isoString);
+    return `${localDate.getFullYear()}-${(localDate.getMonth() + 1).toString().padStart(2, "0")}-${localDate.getDate().toString().padStart(2, "0")} ${localDate.getHours().toString().padStart(2, "0")}_${localDate.getMinutes().toString().padStart(2, "0")}_${localDate.getSeconds().toString().padStart(2, "0")}`;
+}
+
 export async function replaceSimpleTimeTrackerBlock(app: App, rootNote: TFile, name = "", startTime = ""): Promise<void> {
 	// TODO: This function may be called multiple times when plugin is reloaded.
 	// We only need the most recent file created in the folder.
 	if (startTime === "") {
 		startTime = formatDateToISO(new Date());
     }
-	console.log("replaceSimpleTimeTrackerBlock", rootNote.path, name, startTime);
 
     name = name ? name : formatFileLink(rootNote);
     if (rootNote && rootNote instanceof TFile) {
@@ -121,6 +125,39 @@ export function createPathSetting(
         });
 }
 
+export function getCorrectFilePath(timeFolderPath: string, fileName: string): string | null {
+    const match = fileName.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+        return null;
+    }
+
+    const [, year, month, day] = match;
+    return `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}/${fileName}`;
+}
+
+export async function organizeSingleFile(app: App, timeFolderPath: string, file: TFile): Promise<void> {
+    const correctFilePath = getCorrectFilePath(timeFolderPath, file.name);
+    if (!correctFilePath) {
+        // console.warn(`File ${file.path} does not have a valid date format in its name.`);
+        return;
+    }
+
+    if (file.path === correctFilePath) {
+        // File is already in the correct folder
+        return;
+    }
+
+    // Ensure the correct folder structure exists
+    const correctFolderPath = correctFilePath.substring(0, correctFilePath.lastIndexOf('/'));
+    const folder = app.vault.getAbstractFileByPath(normalizePath(correctFolderPath));
+    if (!folder) {
+        await app.vault.createFolder(normalizePath(correctFolderPath));
+    }
+
+    // Move the file to the correct folder
+    await app.vault.rename(file, normalizePath(correctFilePath));
+}
+
 export async function organizeTimeFolderFiles(app: App, timeFolderPath: string): Promise<void> {
     const timeFolder = app.vault.getAbstractFileByPath(normalizePath(timeFolderPath));
 
@@ -132,28 +169,10 @@ export async function organizeTimeFolderFiles(app: App, timeFolderPath: string):
     const files = app.vault.getFiles().filter(file => file.path.startsWith(timeFolderPath));
 
     for (const file of files) {
-        const match = file.name.match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (!match) {
-            // console.warn(`File ${file.path} does not have a valid date format in its name.`);
-            continue;
-        }
-
-        const [_, year, month, day] = match;
-        const correctFolderPath = `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}`;
-        const correctFilePath = `${correctFolderPath}/${file.name}`;
-
-        if (file.path === correctFilePath) {
-            // File is already in the correct folder
-            continue;
-        }
-
-        // Ensure the correct folder structure exists
-        let folder = app.vault.getAbstractFileByPath(normalizePath(correctFolderPath));
-        if (!folder) {
-            await app.vault.createFolder(normalizePath(correctFolderPath));
-        }
-
-        // Move the file to the correct folder
-        await app.vault.rename(file, normalizePath(correctFilePath));
+        await organizeSingleFile(app, timeFolderPath, file);
     }
+}
+
+export function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
