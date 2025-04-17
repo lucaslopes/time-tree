@@ -10,7 +10,9 @@ import {
 	organizeTimeFolderFiles,
 	organizeSingleFile,
 	formatDateToISO,
-	delay
+	ensureFolderStructure,
+	delay,
+	getRootFile
 } from "./utils";
 
 export class TimeTreeHandler {
@@ -55,6 +57,33 @@ export class TimeTreeHandler {
 		}
 	}
 
+	async handleFileCreation(file: TFile, useModifiedDate = false): Promise<void> {
+		const targetFolder = this.settings.TimeFolderPath;
+		if (file.path.startsWith(`${targetFolder}/`) && file.extension === "md") {
+			const isRegistred = await this.frontMatterManager.getProperty(file, "Registred");
+			const taskName = await this.frontMatterManager.getProperty(file, "Task");
+			if (isRegistred === false && !taskName) {
+				const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
+				await organizeSingleFile(this.app, targetFolder, file);
+				const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
+				if (rootNote) {
+					// TODO: bool should be between created time and title
+					const dateToUse = useModifiedDate && fileStat.mtime
+						? formatDateToISO(new Date(fileStat.mtime))
+						: formatDateToISO(new Date(fileStat.ctime));
+					await replaceSimpleTimeTrackerBlock(this.app, rootNote, "", dateToUse);
+					const runningNote = await this.frontMatterManager.findDoingNote(rootNote) as TFile;
+					if (runningNote !== rootNote) {
+						await this.updateTrackerBlocks(runningNote, dateToUse, "doing");
+						await this.updateNoteProperty("status", "todo", false, runningNote);
+						await this.updateNoteProperty("status", "doing", false, rootNote);
+						await this.updateNoteProperty("running", formatFileLink(rootNote), false, rootNote);
+					}
+				}
+			}
+		}
+	}
+
 	async handleTrackerButtonClick(btn: HTMLButtonElement): Promise<void> {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		const activeFile = this.app.workspace.getActiveFile();
@@ -66,28 +95,30 @@ export class TimeTreeHandler {
 		const isEnd = btnStatus === "End";
 		await this.handleTrackerStatusChange(isEnd);
 		
-		// Process root file updates
 		const rootFile = await this.getRootFile() as TFile;
 		if (!rootFile) return;
 		const runningNote = await this.frontMatterManager.findDoingNote(rootFile) as TFile;
 		
-		// Update tracker entries in the running note
 		const runningValue = !isEnd ? formatFileLink(activeFile) : formatFileLink(rootFile);
 		await this.updateNoteProperty("running", runningValue, false, rootFile);
+		await this.updateNoteProperty("status", "todo", false, runningNote);
+		if (isEnd) {
+			await this.updateNoteProperty("status", "doing", false, rootFile);
+		}
 		
-		// Update tracker blocks in the running note
 		const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(activeFile) as string;
 		const status = (isEnd: boolean) => isEnd ? "todo" : "doing";
 		if (activeFile === rootFile && runningNote != rootFile) {
 			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(!isEnd));
 		}
 		const localDate = formatISOToString(lastTrackerTime);
-		const entryFilePath = getCorrectFilePath(this.settings.TimeFolderPath, localDate) + '.md';
-		console.log('new entry', runningValue, localDate, entryFilePath);
+		const entryFilePath = getCorrectFilePath(this.settings.TimeFolderPath, localDate) as string;
 
-		// Create a markdown file at the entryFilePath
-		const newFile = await this.app.vault.create(entryFilePath, `# Entry for ${localDate}\n\n`);
-		console.log('Created new file:', newFile.path);
+		const taskName = activeFile == rootFile ? formatFileLink(rootFile) : runningValue;
+		const registred = (taskName && !isEnd) ? true : false;
+		const content = `---\nTask: "${taskName}"\nRegistred: ${registred}\n---\n`;
+		await ensureFolderStructure(this.app, entryFilePath);
+		await this.app.vault.create(entryFilePath, content);
 
 		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime);
 		if (runningNote != rootFile && runningNote != activeFile && activeFile != rootFile) {
@@ -106,35 +137,20 @@ export class TimeTreeHandler {
 	}
 	
 	private async getRootFile(): Promise<TFile | null> {
-		const rootPath = this.settings.rootNotePath;
-		if (!rootPath) {
-			new Notice("Root note path is not configured in settings.");
-			return null;
-		}
-		
-		const rootFile = this.app.vault.getAbstractFileByPath(rootPath) as TFile;
-		if (!(rootFile instanceof TFile)) {
-			new Notice(`Root note ${rootPath} not found.`);
-			return null;
-		}
-		
-		return rootFile;
+		return getRootFile(this.app, this.settings.rootNotePath);
 	}
 	
-	private async updateTrackerBlocks(rootFile: TFile, lastTrackerTime: string, status: string): Promise<void> {
-		const activeFile = this.app.workspace.getActiveFile();
-		if (!activeFile) return;
-		
-		const rootFileContent = await this.app.vault.read(rootFile);
-		const entry = { "name": "[[]]", "startTime": `${lastTrackerTime}`, "endTime": null };
-		let updatedContent = rootFileContent;
-		
+	private async updateTrackerBlocks(note: TFile, lastTrackerTime: string, status: string): Promise<void> {
+		const noteContent = await this.app.vault.read(note);
 		const trackerBlockRegex = /(```simple-time-tracker\s*\n?)([\s\S]*?)(\n```)/;
-		const trackerBlockMatch = rootFileContent.match(trackerBlockRegex);
+		const trackerBlockMatch = noteContent.match(trackerBlockRegex);
+		
+		const entry = { "name": "[[]]", "startTime": `${lastTrackerTime}`, "endTime": null };
+		let updatedContent = noteContent;
 		
 		if (trackerBlockMatch) {
 			updatedContent = await this.updateExistingTrackerBlock(
-				rootFileContent, 
+				noteContent, 
 				trackerBlockRegex,
 				trackerBlockMatch, 
 				entry, 
@@ -143,14 +159,14 @@ export class TimeTreeHandler {
 			);
 		} else {
 			updatedContent = await this.createNewTrackerBlock(
-				rootFileContent, 
+				noteContent, 
 				entry, 
 				status
 			);
 		}
 		
-		if (updatedContent !== rootFileContent) {
-			await this.app.vault.modify(rootFile, updatedContent);
+		if (updatedContent !== noteContent) {
+			await this.app.vault.modify(note, updatedContent);
 		}
 	}
 	
@@ -396,26 +412,6 @@ export class TimeTreeHandler {
 			this.app.workspace.getLeaf().openFile(doingNote);
 		} else {
 			new Notice("No running tracker found.");
-		}
-	}
-
-	async handleFileCreation(file: TFile, useModifiedDate = false): Promise<void> {
-		// TODO: need to stop the last running tracker
-		const targetFolder = this.settings.TimeFolderPath;
-		if (file.path.startsWith(`${targetFolder}/`)) {
-			if (file.extension === "md") {
-				const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
-				if (rootNote) {
-					const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
-					const dateToUse = useModifiedDate && fileStat.mtime
-						? formatDateToISO(new Date(fileStat.mtime))
-						: formatDateToISO(new Date(fileStat.ctime));
-					
-					// Rename the file and return the updated file
-					await organizeSingleFile(this.app, targetFolder, file);
-					replaceSimpleTimeTrackerBlock(this.app, rootNote, "", dateToUse);
-				}
-			}
 		}
 	}
 }

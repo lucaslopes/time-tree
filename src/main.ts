@@ -3,7 +3,7 @@ import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeHandler } from "./command-handler";
-import { delay } from "./utils";
+import { delay } from "./utils";  // getRootFile
 
 export default class TimeTreePlugin extends Plugin {
 	public api = (this.app as any).plugins.plugins["simple-time-tracker"].api;
@@ -15,28 +15,16 @@ export default class TimeTreePlugin extends Plugin {
 	private pluginLoadTime = 0;
 	
 	async onload(): Promise<void> {
-		this.pluginLoadTime = Date.now();
 		await this.loadSettings();
+		
+		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
 		this.frontMatterManager = new FrontMatterManager(this.app);
+		
 		this.commandHandler = new TimeTreeHandler(
 			this.app,
 			this.api,
 			this.settings,
 			this.frontMatterManager
-		);
-	
-		this.addSettingTab(new TimeTreeSettingsTab(this.app, this));
-
-		this.registerEvent(
-			this.app.vault.on("create", async (file: TFile) => {
-				if (file instanceof TFile && file.stat) {
-					if (file.stat.ctime > this.pluginLoadTime) {
-						await delay(0);
-						console.log("File created:", file.path);
-						await this.commandHandler.handleFileCreation(file);
-					}
-				}
-			})
 		);
 
 		this.addCommand({
@@ -147,8 +135,6 @@ export default class TimeTreePlugin extends Plugin {
 			},
 		});
 
-		// TODO: Se clicar no root para pausar/continuar da Error: File already exists.
-		// TODO: ao dar load no app, o root note é atualizado para um novo note qualquer (deve ser o mais recente)
 		this.buttonObserver = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
@@ -169,6 +155,25 @@ export default class TimeTreePlugin extends Plugin {
 			childList: true,
 			subtree: true,
 		});
+
+		// const rootFile = await getRootFile(this.app, this.settings.rootNotePath) as TFile; // | null;
+		// if (!rootFile) {
+		// 	// TODO: file exists but was not loaded yet
+		// 	console.error("Root file not found at path:", this.settings.rootNotePath);
+		// 	return; // Exit early if the root file is not found
+		// }
+		const lastTrackerTime = null; // await this.frontMatterManager.getLastTrackerTimeRegex(rootFile) as string;
+		this.pluginLoadTime = lastTrackerTime ? new Date(lastTrackerTime).getTime() : Date.now();
+		this.registerEvent(
+			this.app.vault.on("create", async (file: TFile) => {
+				if (file instanceof TFile && file.stat) {
+					if (file.stat.ctime > this.pluginLoadTime) {
+						await delay(0);
+						await this.commandHandler.handleFileCreation(file);
+					}
+				}
+			})
+		);
 
 		this.scheduleComputeTimeTree();
 	}

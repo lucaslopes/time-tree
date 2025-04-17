@@ -1,4 +1,4 @@
-import { App, Setting, TFile, TFolder, normalizePath } from "obsidian";
+import { App, Setting, TFile, TFolder, normalizePath, Notice } from "obsidian";
 
 export function formatFileLink(activeFile: TFile): string {
     return `[[${activeFile.path}|${activeFile.basename}]]`;
@@ -51,6 +51,7 @@ export async function replaceSimpleTimeTrackerBlock(app: App, rootNote: TFile, n
 	// TODO: This function may be called multiple times when plugin is reloaded.
 	// We only need the most recent file created in the folder.
 	if (startTime === "") {
+		// TODO: make sure the timezone is correct
 		startTime = formatDateToISO(new Date());
     }
 
@@ -125,14 +126,29 @@ export function createPathSetting(
         });
 }
 
-export function getCorrectFilePath(timeFolderPath: string, fileName: string): string | null {
+export function getCorrectFilePath(timeFolderPath: string, fileName: string, includeFilePath = true): string | null {
     const match = fileName.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (!match) {
         return null;
     }
 
     const [, year, month, day] = match;
-    return `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}/${fileName}`;
+    let path = `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}`;
+	if (includeFilePath) {
+		path = fileName.endsWith('.md') ? `${path}/${fileName}` : `${path}/${fileName}.md`;
+	}
+	return path;
+}
+
+export async function ensureFolderStructure(app: App, folderPath: string): Promise<void> {
+    if (folderPath.endsWith('.md')) {
+        folderPath = folderPath.substring(0, folderPath.lastIndexOf('/'));
+    }
+
+    const folder = app.vault.getAbstractFileByPath(normalizePath(folderPath));
+    if (!folder) {
+        await app.vault.createFolder(normalizePath(folderPath));
+    }
 }
 
 export async function organizeSingleFile(app: App, timeFolderPath: string, file: TFile): Promise<void> {
@@ -147,14 +163,7 @@ export async function organizeSingleFile(app: App, timeFolderPath: string, file:
         return;
     }
 
-    // Ensure the correct folder structure exists
-    const correctFolderPath = correctFilePath.substring(0, correctFilePath.lastIndexOf('/'));
-    const folder = app.vault.getAbstractFileByPath(normalizePath(correctFolderPath));
-    if (!folder) {
-        await app.vault.createFolder(normalizePath(correctFolderPath));
-    }
-
-    // Move the file to the correct folder
+    await ensureFolderStructure(app, correctFilePath);
     await app.vault.rename(file, normalizePath(correctFilePath));
 }
 
@@ -175,4 +184,19 @@ export async function organizeTimeFolderFiles(app: App, timeFolderPath: string):
 
 export function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function getRootFile(app: App, rootNotePath: string): Promise<TFile | null> {
+	if (!rootNotePath) {
+		new Notice("Root note path is not configured in settings.");
+		return null;
+	}
+
+	const rootFile = app.vault.getAbstractFileByPath(rootNotePath) as TFile;
+	if (!(rootFile instanceof TFile)) {
+		new Notice(`Root note ${rootNotePath} not found.`);
+		return null;
+	}
+
+	return rootFile;
 }
