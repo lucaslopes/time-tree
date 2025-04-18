@@ -58,20 +58,20 @@ export class TimeTreeHandler {
 		}
 	}
 
-	async handleFileCreation(file: TFile, useTitleDate = true): Promise<void> {
-		const targetFolder = this.settings.TimeFolderPath;
-		if (file.path.startsWith(`${targetFolder}/`) && file.extension === "md") {
+	async handleFileCreation(file: TFile, updateRootNoteTracker = true): Promise<void> {
+		const timeFolder = this.settings.TimeFolderPath;
+		if (file.path.startsWith(`${timeFolder}/`) && file.extension === "md") {
 			const isRegistred = await this.frontMatterManager.getProperty(file, "Registred");
 			const taskName = await this.frontMatterManager.getProperty(file, "Task");
 			if (isRegistred === false && !taskName) {
 				const fileStat = await this.app.vault.adapter.stat(file.path) as Stat;
-				await organizeSingleFile(this.app, targetFolder, file);
+				await organizeSingleFile(this.app, timeFolder, file);
 				const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
-				if (rootNote) {
-					const dateToUse = useTitleDate
-					? formatDateToISO(formatStringToDate(file.name))
-					: formatDateToISO(new Date(fileStat.ctime));
-					console.log(file.name, dateToUse);
+				if (rootNote && updateRootNoteTracker) {
+					let dateToUse = formatDateToISO(formatStringToDate(file.name));
+					if (!dateToUse) {
+						dateToUse = formatDateToISO(new Date(fileStat.ctime));
+					}
 					await replaceSimpleTimeTrackerBlock(this.app, rootNote, "", dateToUse);
 					const runningNote = await this.frontMatterManager.findDoingNote(rootNote) as TFile;
 					if (runningNote !== rootNote) {
@@ -121,7 +121,7 @@ export class TimeTreeHandler {
 		await ensureFolderStructure(this.app, entryFilePath);
 		await this.app.vault.create(entryFilePath, content);
 
-		replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime);
+		await replaceSimpleTimeTrackerBlock(this.app, rootFile, runningValue, lastTrackerTime);
 		if (runningNote != rootFile && runningNote != activeFile && activeFile != rootFile) {
 			await this.updateTrackerBlocks(runningNote, lastTrackerTime, status(isEnd));
 		}
@@ -175,7 +175,7 @@ export class TimeTreeHandler {
 		rootFileContent: string, 
 		trackerBlockRegex: RegExp,
 		trackerBlockMatch: RegExpMatchArray,
-		entry: any, 
+		entry: { name: string; startTime: string; endTime: string | null }, 
 		status: string, 
 		lastTrackerTime: string
 	): Promise<string> {
@@ -215,7 +215,7 @@ export class TimeTreeHandler {
 	
 	private async createNewTrackerBlock(
 		rootFileContent: string, 
-		entry: any, 
+		entry: { name: string; startTime: string; endTime: string | null }, 
 		status: string
 	): Promise<string> {
 		const yamlEnd = this.frontMatterManager.getYamlEnd(rootFileContent.split("\n"));

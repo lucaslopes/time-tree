@@ -136,18 +136,28 @@ export function createPathSetting(
         });
 }
 
+export function detectDatePattern(fileName: string, includeTime = false): RegExpMatchArray | null {
+    return includeTime
+        ? fileName.match(/^(\d{4})-(\d{2})-(\d{2}) \d{2}_\d{2}_\d{2}/)
+        : fileName.match(/^(\d{4})-(\d{2})-(\d{2})/);
+}
+
+export function isValidDateFormat(fileName: string, includeTime = false): boolean {
+    return detectDatePattern(fileName, includeTime) !== null;
+}
+
 export function getCorrectFilePath(timeFolderPath: string, fileName: string, includeFilePath = true): string | null {
-    const match = fileName.match(/(\d{4})-(\d{2})-(\d{2})/);
+    const match = detectDatePattern(fileName, false);
     if (!match) {
         return null;
     }
 
     const [, year, month, day] = match;
     let path = `${timeFolderPath}/${year}/${year}-${month}/${year}-${month}-${day}`;
-	if (includeFilePath) {
-		path = fileName.endsWith('.md') ? `${path}/${fileName}` : `${path}/${fileName}.md`;
-	}
-	return path;
+    if (includeFilePath) {
+        path = fileName.endsWith('.md') ? `${path}/${fileName}` : `${path}/${fileName}.md`;
+    }
+    return path;
 }
 
 export async function ensureFolderStructure(app: App, folderPath: string): Promise<void> {

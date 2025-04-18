@@ -1,9 +1,9 @@
-import { Plugin, TFile, App } from "obsidian";
+import { Plugin, TFile, App, TFolder } from "obsidian";
 import { defaultSettings, TimeTreeSettings } from "./settings";
 import { TimeTreeSettingsTab } from "./settings-tab";
 import { FrontMatterManager } from "./front-matter-manager";
 import { TimeTreeHandler } from "./command-handler";
-import { delay } from "./utils";
+import { delay, isValidDateFormat } from "./utils";
 
 interface AppWithPlugins extends App {
     plugins: {
@@ -20,6 +20,20 @@ export default class TimeTreePlugin extends Plugin {
 	private buttonObserver: MutationObserver | null = null;
 	private commandHandler: TimeTreeHandler;
 	private pluginLoadTime = 0;
+
+	private scheduleComputeTimeTree(): void {
+		// Clear any existing interval
+		if (this.computeIntervalHandle) {
+			clearInterval(this.computeIntervalHandle);
+		}
+		// Only schedule if the compute interval is greater than 0 (enabled)
+		if (this.settings.computeIntervalMinutes > 0) {
+			const intervalMs = this.settings.computeIntervalMinutes * 60 * 1000;
+			this.computeIntervalHandle = setInterval(async () => {
+				await this.commandHandler.computeTimeTree();
+			}, intervalMs);
+		}
+	}
 
 	private async loadPlugins(verbose = false): Promise<void> {
 		// Load Simple Time Tracker API
@@ -39,6 +53,89 @@ export default class TimeTreePlugin extends Plugin {
 		} else {
 			if (verbose) console.error("DataView plugin is not available.");
 		}
+	}
+
+	private async getAllFilesInTimeFolder(): Promise<string[]> {
+		const timeFolder = this.app.vault.getAbstractFileByPath(this.settings.TimeFolderPath);
+		if (timeFolder && timeFolder instanceof TFolder) {
+			const files: string[] = [];
+			timeFolder.children.forEach((file) => {
+				if (file instanceof TFile && file.extension === "md" && isValidDateFormat(file.name, true)) {
+					files.push(file.path);
+				}
+			});
+			files.sort((a, b) => a.localeCompare(b));
+			return files;
+		} else {
+			console.error("TimeFolderPath is not a valid folder:", this.settings.TimeFolderPath);
+			return [];
+		}
+	}
+
+	private async logRootFileCreatedDate(rootFile: TFile): Promise<void> {
+		const lastTrackerTime = await this.frontMatterManager.getLastTrackerTimeRegex(rootFile) as string;
+		this.pluginLoadTime = lastTrackerTime ? new Date(lastTrackerTime).getTime() : Date.now();
+		const files = await this.getAllFilesInTimeFolder();
+		for (let i = 0; i < files.length; i++) {
+			const filePath = files[i];
+			const file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
+			await this.handleFileCreation(file, i === files.length - 1);
+		}
+		this.registerEvent(this.app.vault.on("create", this.handleFileCreation.bind(this)));
+	}
+
+	private async initializeRootFileChecker(rootNotePath: string): Promise<void> {
+		const tryGetRootFile = (): TFile | null => {
+			if (!rootNotePath) {
+				return null;
+			}
+			const rootFile = this.app.vault.getAbstractFileByPath(rootNotePath);
+			return rootFile instanceof TFile ? rootFile : null;
+		};
+
+		let rootFile: TFile | null = null;
+		while (!rootFile) {
+			rootFile = tryGetRootFile();
+			if (rootFile) {
+				await this.logRootFileCreatedDate(rootFile);
+				console.log("Root file found:", rootFile.path);
+				break;
+			}
+			await delay(1000);
+		}
+	}
+
+	private async handleFileCreation(file: TFile, updateRootNoteTracker = true): Promise<void> {
+		if (file instanceof TFile && file.stat) {
+			if (file.stat.ctime > this.pluginLoadTime) {
+				await delay(0);
+				await this.commandHandler.handleFileCreation(file, updateRootNoteTracker);
+				console.log("File handled:", file.path);
+			}
+		}
+	}
+
+	private initializeButtonObserver(): void {
+		this.buttonObserver = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				mutation.addedNodes.forEach((node) => {
+					if (node instanceof HTMLElement) {
+						const btn = node.querySelector(
+							".simple-time-tracker-btn"
+						) as HTMLButtonElement | null;
+						if (btn) {
+							btn.addEventListener("click", async () => {
+								await this.commandHandler.handleTrackerButtonClick(btn);
+							});
+						}
+					}
+				});
+			});
+		});
+		this.buttonObserver.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
 	}
 
 	async onload(): Promise<void> {
@@ -163,46 +260,8 @@ export default class TimeTreePlugin extends Plugin {
 			},
 		});
 
-		this.buttonObserver = new MutationObserver((mutations) => {
-			mutations.forEach((mutation) => {
-				mutation.addedNodes.forEach((node) => {
-					if (node instanceof HTMLElement) {
-						const btn = node.querySelector(
-							".simple-time-tracker-btn"
-						) as HTMLButtonElement | null;
-						if (btn) {
-							btn.addEventListener("click", async () => {
-								await this.commandHandler.handleTrackerButtonClick(btn);
-							});
-						}
-					}
-				});
-			});
-		});
-		this.buttonObserver.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
-
-		// const rootFile = await getRootFile(this.app, this.settings.rootNotePath) as TFile; // | null;
-		// if (!rootFile) {
-		// 	// TODO: file exists but was not loaded yet
-		// 	console.error("Root file not found at path:", this.settings.rootNotePath);
-		// 	return; // Exit early if the root file is not found
-		// }
-		const lastTrackerTime = null; // await this.frontMatterManager.getLastTrackerTimeRegex(rootFile) as string;
-		this.pluginLoadTime = lastTrackerTime ? new Date(lastTrackerTime).getTime() : Date.now();
-		this.registerEvent(
-			this.app.vault.on("create", async (file: TFile) => {
-				if (file instanceof TFile && file.stat) {
-					if (file.stat.ctime > this.pluginLoadTime) {
-						await delay(0);
-						await this.commandHandler.handleFileCreation(file);
-					}
-				}
-			})
-		);
-
+		this.initializeButtonObserver();
+		this.initializeRootFileChecker(this.settings.rootNotePath);
 		this.scheduleComputeTimeTree();
 	}
 
@@ -226,19 +285,5 @@ export default class TimeTreePlugin extends Plugin {
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 		this.scheduleComputeTimeTree();
-	}
-
-	scheduleComputeTimeTree(): void {
-		// Clear any existing interval
-		if (this.computeIntervalHandle) {
-			clearInterval(this.computeIntervalHandle);
-		}
-		// Only schedule if the compute interval is greater than 0 (enabled)
-		if (this.settings.computeIntervalMinutes > 0) {
-			const intervalMs = this.settings.computeIntervalMinutes * 60 * 1000;
-			this.computeIntervalHandle = setInterval(async () => {
-				await this.commandHandler.computeTimeTree();
-			}, intervalMs);
-		}
 	}
 }
