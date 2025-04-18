@@ -22,4 +22,4 @@ data.json
 .DS_Store
 
 # Obsidian Vault
-test-vault/*
+# test-vault/*

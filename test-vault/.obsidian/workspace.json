@@ -4,11 +4,25 @@
     "type": "split",
     "children": [
       {
-        "id": "cbc50b7fb7a5ffe6",
+        "id": "9e7a33d45ebb6b65",
         "type": "tabs",
         "children": [
           {
-            "id": "ad30d48aef134075",
+            "id": "9928080542bbf5a3",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Tree/root.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "root"
+            }
+          },
+          {
+            "id": "2b6c0780b436164c",
             "type": "leaf",
             "state": {
               "type": "database-plugin",
@@ -17,6 +31,27 @@
               },
               "icon": "database-folder-icon",
               "title": "Time"
+            }
+          }
+        ],
+        "currentTab": 1
+      },
+      {
+        "id": "004347c4d3e87c51",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "503d483fc7a34572",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Tree/my-sub-task.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "my-sub-task"
             }
           }
         ]
@@ -178,15 +213,26 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "dbfolder:Create a new database table": false
+      "dbfolder:Create a new database table": false,
+      "templater-obsidian:Templater": false
     }
   },
-  "active": "ad30d48aef134075",
+  "active": "2b6c0780b436164c",
   "lastOpenFiles": [
     "Tree/root.md",
+    "Templates/task.md",
+    "Tree/my-sub-task.md",
+    "Time/2025/2025-04/2025-04-18/2025-04-18 14_17_25.md",
+    "Time/2025/2025-04/2025-04-18/2025-04-18 14_15_16.md",
+    "Time/2025/2025-04/2025-04-18",
+    "Time/2025/2025-04",
+    "Time/2025",
+    "Tree/sub/my-sub-task.md",
+    "Templates",
+    "Time/Time.md",
+    "Time/2025-04-18 14_00_00.md",
     "Time/2025-03-30 17_19_52.md",
     "Time/2025-03-30 18_22_28.md",
-    "Time/Time.md",
     "Time/2025-03-29 13_50_39.md",
     "Time/2025-03-30 18_20_02.md",
     "Time/2025-03-30 18_18_21.md",
@@ -203,13 +249,7 @@
     "Tree/level-2c-a.md",
     "Tree/level-2c-c.md",
     "Tree/level-2c-b.md",
-    "ref.md",
-    "Tree/sub/test-note.md",
     "Events",
-    "Tree/level-2b-c.md",
-    "Untitled.md",
-    "Tree/level-2a-a.md",
-    "Tree/sub/newer-task.md",
     "Root/sub",
     "Root"
   ]

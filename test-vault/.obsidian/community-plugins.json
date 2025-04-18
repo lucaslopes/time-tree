@@ -4,5 +4,6 @@
   "time-tree",
   "persistent-graph",
   "dataview",
-  "dbfolder"
+  "dbfolder",
+  "templater-obsidian"
 ]
