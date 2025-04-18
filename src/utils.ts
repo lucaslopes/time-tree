@@ -47,11 +47,21 @@ export function formatISOToString(isoString: string): string {
     return `${localDate.getFullYear()}-${(localDate.getMonth() + 1).toString().padStart(2, "0")}-${localDate.getDate().toString().padStart(2, "0")} ${localDate.getHours().toString().padStart(2, "0")}_${localDate.getMinutes().toString().padStart(2, "0")}_${localDate.getSeconds().toString().padStart(2, "0")}`;
 }
 
+export function formatStringToDate(titleString: string): Date {
+    // Remove file extension if present (e.g., .md)
+    const sanitizedString = titleString.replace(/\.\w+$/, '');
+
+    // Convert from this format: `2025-04-17 17_37_42`
+    const [datePart, timePart] = sanitizedString.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second] = timePart.split('_').map(Number);
+    return new Date(year, month - 1, day, hour, minute, second);
+}
+
 export async function replaceSimpleTimeTrackerBlock(app: App, rootNote: TFile, name = "", startTime = ""): Promise<void> {
 	// TODO: This function may be called multiple times when plugin is reloaded.
 	// We only need the most recent file created in the folder.
 	if (startTime === "") {
-		// TODO: make sure the timezone is correct
 		startTime = formatDateToISO(new Date());
     }
 

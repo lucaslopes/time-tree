@@ -12,7 +12,8 @@ import {
 	formatDateToISO,
 	ensureFolderStructure,
 	delay,
-	getRootFile
+	getRootFile,
+	formatStringToDate
 } from "./utils";
 
 export class TimeTreeHandler {
@@ -57,7 +58,7 @@ export class TimeTreeHandler {
 		}
 	}
 
-	async handleFileCreation(file: TFile, useModifiedDate = false): Promise<void> {
+	async handleFileCreation(file: TFile, useTitleDate = true): Promise<void> {
 		const targetFolder = this.settings.TimeFolderPath;
 		if (file.path.startsWith(`${targetFolder}/`) && file.extension === "md") {
 			const isRegistred = await this.frontMatterManager.getProperty(file, "Registred");
@@ -67,10 +68,10 @@ export class TimeTreeHandler {
 				await organizeSingleFile(this.app, targetFolder, file);
 				const rootNote = this.app.vault.getAbstractFileByPath(this.settings.rootNotePath) as TFile;
 				if (rootNote) {
-					// TODO: bool should be between created time and title
-					const dateToUse = useModifiedDate && fileStat.mtime
-						? formatDateToISO(new Date(fileStat.mtime))
-						: formatDateToISO(new Date(fileStat.ctime));
+					const dateToUse = useTitleDate
+					? formatDateToISO(formatStringToDate(file.name))
+					: formatDateToISO(new Date(fileStat.ctime));
+					console.log(file.name, dateToUse);
 					await replaceSimpleTimeTrackerBlock(this.app, rootNote, "", dateToUse);
 					const runningNote = await this.frontMatterManager.findDoingNote(rootNote) as TFile;
 					if (runningNote !== rootNote) {
