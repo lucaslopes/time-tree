@@ -199,9 +199,10 @@ export class FrontMatterManager {
 		const content = await this.app.vault.read(file);
 		// Extract the dedicated simple-time-tracker block.
 		// It must begin and end on its own line.
-		const blockRegex = /^```simple-time-tracker\s*\n([\s\S]*?)\n```/m;
+		const blockRegex = /^```simple-time-tracker\s*\n([\s\S]*?)```/m;
 		const blockMatch = content.match(blockRegex);
 		if (!blockMatch) {
+			// TODO: then create it and return current Date now (or from notes in TimeFolder)
 			throw new Error("No dedicated simple-time-tracker block found.");
 		}
 		const blockContent = blockMatch[1];
