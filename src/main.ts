@@ -21,39 +21,23 @@ export default class TimeTreePlugin extends Plugin {
 	private commandHandler: TimeTreeHandler;
 	private pluginLoadTime = 0;
 
-	private async loadPlugins(): Promise<void> {
-		// List all loaded plugins in the console
-		console.log("Loaded plugins:", Object.keys((this.app as AppWithPlugins).plugins.plugins));
-
+	private async loadPlugins(verbose = false): Promise<void> {
 		// Load Simple Time Tracker API
 		const simpleTimeTrackerPlugin = (this.app as AppWithPlugins).plugins.plugins["simple-time-tracker"];
 		if (simpleTimeTrackerPlugin && simpleTimeTrackerPlugin.api) {
 			this.simpleTimeTrackerApi = simpleTimeTrackerPlugin.api;
-			console.log("Simple Time Tracker plugin loaded successfully.");
+			if (verbose) console.log("Simple Time Tracker plugin loaded successfully.");
 		} else {
-			console.error("Simple Time Tracker plugin is not available.");
+			if (verbose) console.error("Simple Time Tracker plugin is not available.");
 		}
 
 		// Load DataView API
 		const dataViewPlugin = (this.app as AppWithPlugins).plugins.plugins["dataview"];
 		if (dataViewPlugin && dataViewPlugin.api) {
 			this.dataViewApi = dataViewPlugin.api;
-			console.log("DataView plugin loaded successfully.");
+			if (verbose) console.log("DataView plugin loaded successfully.");
 		} else {
-			console.error("DataView plugin is not available.");
-		}
-
-		// Check if Database Folder plugin is loaded
-		const dbFolderPlugin = (this.app as AppWithPlugins).plugins.plugins["dbfolder"];
-		if (dbFolderPlugin) {
-			console.log("Database Folder plugin object:", dbFolderPlugin);
-			if (dbFolderPlugin.api) {
-				console.log("Database Folder plugin API is available:", dbFolderPlugin.api);
-			} else {
-				console.error("Database Folder plugin does not expose an API.");
-			}
-		} else {
-			console.error("Database Folder plugin is not loaded.");
+			if (verbose) console.error("DataView plugin is not available.");
 		}
 	}
 
